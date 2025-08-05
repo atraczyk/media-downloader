@@ -1,0 +1,28 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+*.pyzwz
+dist/
+build/
+*.spec
+
+# VSCode
+.vscode/
+.history/
+
+# Node
+node_modules/
+
+# Docker
+docker/
+
+# Default output folder
+downloads/

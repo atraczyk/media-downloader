@@ -7,6 +7,8 @@ import time
 from youtube_transcript_api import YouTubeTranscriptApi
 import re
 import string
+from transformers import pipeline
+import warnings
 
 class MediaDownloaderGUI:
     def __init__(self):
@@ -16,6 +18,8 @@ class MediaDownloaderGUI:
         self.window_padding = 20
         # Vertical spacing used in height calculations
         self.vertical_spacing = 8
+        # Initialize summarizer (lazy loading)
+        self.summarizer = None
         self.setup_gui()
 
     def setup_gui(self):
@@ -58,6 +62,11 @@ class MediaDownloaderGUI:
                     label="Download transcript (if available)",
                     tag="transcript_enabled",
                     default_value=True
+                )
+                dpg.add_checkbox(
+                    label="Generate summary (requires transcript)",
+                    tag="summary_enabled",
+                    default_value=False
                 )
 
                 # Format options
@@ -126,6 +135,17 @@ class MediaDownloaderGUI:
                 hint="Transcript will appear here when available..."
             )
 
+            # Summary display
+            dpg.add_text("Summary:", tag="summary_label")
+            dpg.add_input_text(
+                tag="summary_text",
+                multiline=True,
+                readonly=True,
+                height=80,  # Start with minimum height
+                width=760,
+                hint="Summary will appear here when generated..."
+            )
+
             # Status log
             dpg.add_text("Log:", tag="log_label")
             dpg.add_input_text(
@@ -185,7 +205,7 @@ class MediaDownloaderGUI:
         content_width = max(100, width - 2 * padding)
 
         # Full-width elements
-        for item in ("url_input", "progress_bar", "log_text", "transcript_text", "download_btn"):
+        for item in ("url_input", "progress_bar", "log_text", "transcript_text", "summary_text", "download_btn"):
             if dpg.does_item_exist(item):
                 dpg.configure_item(item, width=content_width)
 
@@ -202,35 +222,40 @@ class MediaDownloaderGUI:
         if content_top_left and content_bottom_right:
             content_height = content_bottom_right[1] - content_top_left[1]
 
-        # Get label heights for both log and transcript
+        # Get label heights for all three areas
         log_label_h = 0
         transcript_label_h = 0
+        summary_label_h = 0
         if dpg.does_item_exist("log_label"):
             _, log_label_h = dpg.get_item_rect_size("log_label")
         if dpg.does_item_exist("transcript_label"):
             _, transcript_label_h = dpg.get_item_rect_size("transcript_label")
+        if dpg.does_item_exist("summary_label"):
+            _, summary_label_h = dpg.get_item_rect_size("summary_label")
 
-        # Calculate available height for both text areas
+        # Calculate available height for all three text areas
         # Account for padding, content, labels, and spacing between elements
-        total_label_height = log_label_h + transcript_label_h
-        total_spacing = 4 * self.vertical_spacing  # spacing around and between elements
+        total_label_height = log_label_h + transcript_label_h + summary_label_h
+        total_spacing = 6 * self.vertical_spacing  # spacing around and between elements
         available_height = max(0, height - 2 * padding - content_height - total_label_height - total_spacing)
 
-        # Distribute available height evenly between log and transcript
-        # Each gets half the available space, constrained by min/max limits
-        half_available = available_height / 2
+        # Distribute available height evenly among transcript, summary, and log
+        # Each gets one third of the available space, constrained by min/max limits
+        third_available = available_height / 3
         min_height = 80
         # Max can be infinite
         max_height = float('inf')
 
         # Calculate target heights with constraints
-        target_height = max(min_height, min(max_height, half_available))
+        target_height = max(min_height, min(max_height, third_available))
 
-        # Apply heights to both text areas
-        if dpg.does_item_exist("log_text"):
-            dpg.configure_item("log_text", height=int(target_height))
+        # Apply heights to all three text areas
         if dpg.does_item_exist("transcript_text"):
             dpg.configure_item("transcript_text", height=int(target_height))
+        if dpg.does_item_exist("summary_text"):
+            dpg.configure_item("summary_text", height=int(target_height))
+        if dpg.does_item_exist("log_text"):
+            dpg.configure_item("log_text", height=int(target_height))
 
     def browse_destination(self):
         """Open directory chooser to avoid manual path entry"""
@@ -327,6 +352,95 @@ class MediaDownloaderGUI:
         except Exception as e:
             return None, f"Transcript not available: {str(e)}"
 
+    def get_summarizer(self):
+        """Initialize and return the summarizer (lazy loading)"""
+        if self.summarizer is None:
+            try:
+                # Suppress warnings from transformers
+                warnings.filterwarnings("ignore", category=UserWarning)
+                self.log_message("Loading summarization model (first time only)...")
+                self.summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+                self.log_message("Summarization model loaded successfully!")
+            except Exception as e:
+                self.log_message(f"ERROR: Failed to load summarization model: {str(e)}")
+                return None
+        return self.summarizer
+
+    def chunk_text(self, text, max_chunk_size=1000):
+        """Split text into chunks for summarization"""
+        sentences = text.split('. ')
+        chunks = []
+        current_chunk = ""
+
+        for sentence in sentences:
+            # Add sentence to current chunk if it fits
+            if len(current_chunk + sentence + '. ') <= max_chunk_size:
+                current_chunk += sentence + '. '
+            else:
+                # Save current chunk and start new one
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence + '. '
+
+        # Add the last chunk
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+
+        return chunks
+
+    def summarize_transcript(self, transcript_text):
+        """Generate summary from transcript text"""
+        if not transcript_text:
+            return None, "No transcript available to summarize"
+
+        try:
+            summarizer = self.get_summarizer()
+            if not summarizer:
+                return None, "Summarization model not available"
+
+            # Remove timestamps from transcript for better summarization
+            clean_text = re.sub(r'\[\d{2}:\d{2}\]\s*', '', transcript_text)
+            clean_text = clean_text.strip()
+
+            if len(clean_text) < 50:
+                return None, "Transcript too short to summarize"
+
+            # Handle long transcripts by chunking
+            if len(clean_text) > 1000:
+                self.log_message("Transcript is long, processing in chunks...")
+                chunks = self.chunk_text(clean_text, max_chunk_size=1000)
+                chunk_summaries = []
+
+                for i, chunk in enumerate(chunks):
+                    if len(chunk) < 50:  # Skip very short chunks
+                        continue
+                    try:
+                        summary = summarizer(chunk, max_length=100, min_length=20, do_sample=False)
+                        chunk_summaries.append(summary[0]['summary_text'])
+                        self.log_message(f"Processed chunk {i+1}/{len(chunks)}")
+                    except Exception as e:
+                        self.log_message(f"Warning: Failed to summarize chunk {i+1}: {str(e)}")
+                        continue
+
+                if chunk_summaries:
+                    # Combine chunk summaries
+                    combined_summary = ' '.join(chunk_summaries)
+                    # If combined summary is still too long, summarize it again
+                    if len(combined_summary) > 1000:
+                        final_summary = summarizer(combined_summary, max_length=200, min_length=50, do_sample=False)
+                        return final_summary[0]['summary_text'], None
+                    else:
+                        return combined_summary, None
+                else:
+                    return None, "Failed to generate summary from chunks"
+            else:
+                # Short transcript, summarize directly
+                summary = summarizer(clean_text, max_length=150, min_length=30, do_sample=False)
+                return summary[0]['summary_text'], None
+
+        except Exception as e:
+            return None, f"Summarization failed: {str(e)}"
+
     def save_transcript_to_file(self, transcript_text, media_filename, destination):
         """Save transcript to a text file with similar name as media file"""
         if not transcript_text:
@@ -344,6 +458,25 @@ class MediaDownloaderGUI:
             return transcript_path
         except Exception as e:
             self.log_message(f"ERROR: Failed to save transcript: {str(e)}")
+            return None
+
+    def save_summary_to_file(self, summary_text, media_filename, destination):
+        """Save summary to a text file with similar name as media file"""
+        if not summary_text:
+            return None
+
+        try:
+            # Create summary filename based on media filename
+            base_name = os.path.splitext(media_filename)[0]
+            summary_filename = f"{base_name}_summary.txt"
+            summary_path = os.path.join(destination, summary_filename)
+
+            with open(summary_path, 'w', encoding='utf-8') as f:
+                f.write(f"Video Summary:\n\n{summary_text}")
+
+            return summary_path
+        except Exception as e:
+            self.log_message(f"ERROR: Failed to save summary: {str(e)}")
             return None
 
     def log_message(self, message):
@@ -394,8 +527,9 @@ class MediaDownloaderGUI:
                 self.update_status("Error: Cannot create directory", (255, 100, 100))
                 return
 
-        # Get transcript option
+        # Get transcript and summary options
         transcript_enabled = dpg.get_value("transcript_enabled")
+        summary_enabled = dpg.get_value("summary_enabled")
 
         # Disable UI elements during download
         dpg.configure_item("download_btn", enabled=False)
@@ -405,10 +539,12 @@ class MediaDownloaderGUI:
         dpg.configure_item("audio_quality", enabled=False)
         dpg.configure_item("video_quality", enabled=False)
         dpg.configure_item("transcript_enabled", enabled=False)
+        dpg.configure_item("summary_enabled", enabled=False)
 
-        # Clear log and transcript, start progress
+        # Clear log, transcript, and summary, start progress
         dpg.set_value("log_text", "")
         dpg.set_value("transcript_text", "")
+        dpg.set_value("summary_text", "")
         self.update_status("Downloading...", (0, 255, 0))
         self.update_progress(0.1)
         self.is_downloading = True
@@ -416,7 +552,7 @@ class MediaDownloaderGUI:
         # Start download in separate thread
         self.download_thread = threading.Thread(
             target=self.download_media,
-            args=(url, destination, download_type, transcript_enabled)
+            args=(url, destination, download_type, transcript_enabled, summary_enabled)
         )
         self.download_thread.daemon = True
         self.download_thread.start()
@@ -437,9 +573,10 @@ class MediaDownloaderGUI:
             self.update_progress(0.9)
             self.log_message(f"Finished downloading: {d['filename']}")
 
-    def download_media(self, video_url, destination, download_type, transcript_enabled=False):
+    def download_media(self, video_url, destination, download_type, transcript_enabled=False, summary_enabled=False):
         """Download media from video URL"""
         transcript_text = None
+        summary_text = None
         media_filename = None
 
         try:
@@ -454,10 +591,25 @@ class MediaDownloaderGUI:
                 if transcript_text:
                     self.log_message("Transcript fetched successfully!")
                     dpg.set_value("transcript_text", transcript_text)
+
+                    # Generate summary if enabled and transcript is available
+                    if summary_enabled:
+                        self.log_message("Generating summary...")
+                        summary_text, summary_error = self.summarize_transcript(transcript_text)
+                        if summary_text:
+                            self.log_message("Summary generated successfully!")
+                            dpg.set_value("summary_text", summary_text)
+                        elif summary_error:
+                            self.log_message(f"Summary: {summary_error}")
+                            dpg.set_value("summary_text", f"Summary not available: {summary_error}")
                 elif transcript_error:
                     self.log_message(f"Transcript: {transcript_error}")
                     dpg.set_value("transcript_text", f"Transcript not available: {transcript_error}")
-                self.update_progress(0.15)
+                    if summary_enabled:
+                        dpg.set_value("summary_text", "Summary not available: No transcript")
+
+                progress_increment = 0.15 if summary_enabled else 0.1
+                self.update_progress(0.1 + progress_increment)
 
             # Common options to avoid 403 errors
             common_opts = {
@@ -482,8 +634,13 @@ class MediaDownloaderGUI:
                 'trim_filenames': 200,      # Limit filename length
             }
 
-            # Set base progress based on whether transcript was fetched
-            base_progress = 0.15 if transcript_enabled else 0.1
+            # Set base progress based on whether transcript and summary were processed
+            if transcript_enabled and summary_enabled:
+                base_progress = 0.25
+            elif transcript_enabled:
+                base_progress = 0.15
+            else:
+                base_progress = 0.1
 
             if download_type == "Audio (MP3)":
                 ydl_opts = {
@@ -558,12 +715,22 @@ class MediaDownloaderGUI:
                 if transcript_path:
                     self.log_message(f"Transcript saved to: {os.path.basename(transcript_path)}")
 
+            # Save summary to file if available
+            if summary_enabled and summary_text and media_filename:
+                self.log_message("Saving summary to file...")
+                summary_path = self.save_summary_to_file(summary_text, media_filename, destination)
+                if summary_path:
+                    self.log_message(f"Summary saved to: {os.path.basename(summary_path)}")
+
             self.update_progress(1.0)
             self.log_message("Download completed successfully!")
             media_type = "MP3" if download_type == "Audio (MP3)" else "Video"
             success_msg = f"Success: {media_type} downloaded!"
             if transcript_enabled and transcript_text:
-                success_msg += " (with transcript)"
+                success_msg += " (with transcript"
+                if summary_enabled and summary_text:
+                    success_msg += " and summary"
+                success_msg += ")"
             self.update_status(success_msg, (0, 255, 0))
 
         except youtube_dl.DownloadError as e:
@@ -594,6 +761,7 @@ class MediaDownloaderGUI:
             dpg.configure_item("audio_quality", enabled=True)
             dpg.configure_item("video_quality", enabled=True)
             dpg.configure_item("transcript_enabled", enabled=True)
+            dpg.configure_item("summary_enabled", enabled=True)
             self.is_downloading = False
 
     def run(self):

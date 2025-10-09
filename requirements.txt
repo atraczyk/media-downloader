@@ -2,3 +2,5 @@ yt-dlp
 pyinstaller
 dearpygui
 youtube-transcript-api
+transformers
+torch

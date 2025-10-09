@@ -6,7 +6,7 @@ A modern GUI application for downloading audio and video from YouTube videos. Su
 
 - 🎵 Download audio from YouTube videos (MP3)
 - 🎬 Download videos in various qualities
-- 🎨 Modern Tkinter GUI interface
+- 🎨 Modern Dear PyGui interface
 - 📁 Easy destination folder selection
 - 📊 Real-time progress tracking
 - 🔄 Background download processing
@@ -90,19 +90,19 @@ If the executable build fails:
    ```bash
    # Remove build artifacts
    rmdir /s build dist
-   del main.spec
+   del Media_Downloader.spec
 
    # Reinstall PyInstaller
    pip uninstall pyinstaller
    pip install pyinstaller
 
    # Try building again
-   python build_exe.py
+   python build.py
    ```
 
 2. **Manual PyInstaller command:**
    ```bash
-   pyinstaller --onefile --windowed --name=MP3_Downloader main.py
+   pyinstaller --onefile --windowed --name=Media_Downloader main.py
    ```
 
 ## File Structure

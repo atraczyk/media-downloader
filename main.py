@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 from youtube_transcript_api import YouTubeTranscriptApi
 import re
+import string
 
 class MediaDownloaderGUI:
     def __init__(self):
@@ -241,6 +242,52 @@ class MediaDownloaderGUI:
         if selected_path:
             dpg.set_value("dest_input", selected_path)
 
+    def sanitize_filename(self, filename):
+        """Sanitize filename to remove invalid characters for Windows filesystem"""
+        # Characters not allowed in Windows filenames
+        invalid_chars = '<>:"/\\|?*'
+
+        # Replace invalid characters with underscores
+        for char in invalid_chars:
+            filename = filename.replace(char, '_')
+
+        # Remove or replace other problematic characters
+        filename = filename.replace('｜', '_')  # Replace full-width vertical bar
+        filename = filename.replace('·', '_')   # Replace middle dot
+        filename = filename.replace('…', '...')  # Replace ellipsis
+
+        # Remove emojis and other Unicode symbols
+        filename = re.sub(r'[\U0001F600-\U0001F64F]', '', filename)  # Emoticons
+        filename = re.sub(r'[\U0001F300-\U0001F5FF]', '', filename)  # Symbols & pictographs
+        filename = re.sub(r'[\U0001F680-\U0001F6FF]', '', filename)  # Transport & map symbols
+        filename = re.sub(r'[\U0001F1E0-\U0001F1FF]', '', filename)  # Flags
+        filename = re.sub(r'[\U00002600-\U000026FF]', '', filename)  # Miscellaneous symbols
+        filename = re.sub(r'[\U00002700-\U000027BF]', '', filename)  # Dingbats
+
+        # Remove hashtags
+        filename = filename.replace('#', '')
+
+        # Convert to ASCII, replacing non-ASCII characters
+        filename = filename.encode('ascii', 'ignore').decode('ascii')
+
+        # Replace multiple consecutive spaces/underscores with single underscore
+        filename = re.sub(r'[_\s]+', '_', filename)
+
+        # Remove leading/trailing spaces and underscores
+        filename = filename.strip(' _')
+
+        # Limit filename length (Windows has 260 char path limit)
+        if len(filename) > 200:
+            filename = filename[:200].rstrip('_')
+
+        # Ensure filename is not empty and doesn't end with period (Windows restriction)
+        if not filename or filename == '.':
+            filename = "untitled"
+        elif filename.endswith('.'):
+            filename = filename.rstrip('.') + '_'
+
+        return filename
+
     def extract_youtube_video_id(self, youtube_url):
         """Extract YouTube video ID from various URL formats"""
         youtube_patterns = [
@@ -414,7 +461,7 @@ class MediaDownloaderGUI:
 
             # Common options to avoid 403 errors
             common_opts = {
-                'outtmpl': os.path.join(destination, '%(title)s.%(ext)s'),
+                'outtmpl': os.path.join(destination, '%(title).200s.%(ext)s'),  # Limit title length
                 'progress_hooks': [self.progress_hook],
                 # Headers to avoid bot detection
                 'http_headers': {
@@ -429,7 +476,14 @@ class MediaDownloaderGUI:
                 'writeinfojson': False,
                 'writesubtitles': False,
                 'writeautomaticsub': False,
+                # Filename sanitization options
+                'restrictfilenames': True,  # Use ASCII characters only
+                'windowsfilenames': True,   # Ensure Windows compatibility
+                'trim_filenames': 200,      # Limit filename length
             }
+
+            # Set base progress based on whether transcript was fetched
+            base_progress = 0.15 if transcript_enabled else 0.1
 
             if download_type == "Audio (MP3)":
                 ydl_opts = {
@@ -457,8 +511,7 @@ class MediaDownloaderGUI:
                     'format': format_str,
                 }
 
-                base_progress = 0.15 if transcript_enabled else 0.1
-                self.update_progress(base_progress + 0.05)
+            self.update_progress(base_progress + 0.05)
             self.log_message("Fetching video information...")
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -481,11 +534,12 @@ class MediaDownloaderGUI:
                     else:
                         self.log_message(f"Duration: {minutes}:{seconds:02d}")
 
-                # Store the expected filename for transcript saving
+                # Store the expected filename for transcript saving (sanitized)
+                sanitized_title = self.sanitize_filename(title)
                 if download_type == "Audio (MP3)":
-                    media_filename = f"{title}.mp3"
+                    media_filename = f"{sanitized_title}.mp3"
                 else:
-                    media_filename = f"{title}.webm"
+                    media_filename = f"{sanitized_title}.webm"
 
                 self.update_progress(base_progress + 0.15)
 

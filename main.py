@@ -4,6 +4,8 @@ import dearpygui.dearpygui as dpg
 import threading
 from pathlib import Path
 import time
+from youtube_transcript_api import YouTubeTranscriptApi
+import re
 
 class MediaDownloaderGUI:
     def __init__(self):
@@ -11,15 +13,13 @@ class MediaDownloaderGUI:
         self.is_downloading = False
         # Consistent left/right and top/bottom padding inside main window
         self.window_padding = 20
-        # Minimum height for logs anchored to the bottom
-        self.log_min_height = 180
         # Vertical spacing used in height calculations
-        self.vertical_spacing = 10
+        self.vertical_spacing = 8
         self.setup_gui()
 
     def setup_gui(self):
         dpg.create_context()
-        dpg.create_viewport(title="Media Downloader", width=800, height=700)
+        dpg.create_viewport(title="Media Downloader", width=800, height=900)
         dpg.setup_dearpygui()
 
                 # Primary window to match viewport; prevents layout drift
@@ -34,14 +34,10 @@ class MediaDownloaderGUI:
             no_bring_to_front_on_focus=True,
         ):
             with dpg.group(tag="content_group"):
-                # Title
-                dpg.add_text("Media Downloader", color=(0, 150, 255))
-                dpg.add_separator()
-
                 # URL input
-                dpg.add_text("Video URL:")
+                dpg.add_text("URL:")
                 dpg.add_input_text(
-                    tag="url_input", hint="Enter video URL here...", width=760
+                    tag="url_input", hint="Enter URL here...", width=760
                 )
 
                 # Download type selection
@@ -53,6 +49,15 @@ class MediaDownloaderGUI:
                         default_value="Audio (MP3)",
                         callback=self.on_type_change
                     )
+
+                # Transcript options
+                dpg.add_separator()
+                dpg.add_text("Transcript Options:")
+                dpg.add_checkbox(
+                    label="Download transcript (if available)",
+                    tag="transcript_enabled",
+                    default_value=True
+                )
 
                 # Format options
                 with dpg.collapsing_header(label="Format Options", default_open=True):
@@ -109,13 +114,24 @@ class MediaDownloaderGUI:
                     tag="progress_bar", default_value=0.0, width=760
                 )
 
+            # Transcript display
+            dpg.add_text("Transcript:", tag="transcript_label")
+            dpg.add_input_text(
+                tag="transcript_text",
+                multiline=True,
+                readonly=True,
+                height=80,  # Start with minimum height
+                width=760,
+                hint="Transcript will appear here when available..."
+            )
+
             # Status log
             dpg.add_text("Log:", tag="log_label")
             dpg.add_input_text(
                 tag="log_text",
                 multiline=True,
                 readonly=True,
-                height=260,
+                height=80,  # Start with minimum height
                 width=760,
             )
 
@@ -168,7 +184,7 @@ class MediaDownloaderGUI:
         content_width = max(100, width - 2 * padding)
 
         # Full-width elements
-        for item in ("url_input", "progress_bar", "log_text", "download_btn"):
+        for item in ("url_input", "progress_bar", "log_text", "transcript_text", "download_btn"):
             if dpg.does_item_exist(item):
                 dpg.configure_item(item, width=content_width)
 
@@ -177,7 +193,7 @@ class MediaDownloaderGUI:
         if dpg.does_item_exist("dest_input"):
             dpg.configure_item("dest_input", width=dest_input_width)
 
-        # Anchor logs to bottom with minimum height
+        # Calculate available space for log and transcript areas
         # Compute space used by content group above logs
         content_top_left = dpg.get_item_rect_min("content_group")
         content_bottom_right = dpg.get_item_rect_max("content_group")
@@ -185,17 +201,35 @@ class MediaDownloaderGUI:
         if content_top_left and content_bottom_right:
             content_height = content_bottom_right[1] - content_top_left[1]
 
-        # Available vertical space for logs block inside padded window
-        # Subtract the label's height and spacing to avoid overflow
-        label_w, label_h = (0, 0)
+        # Get label heights for both log and transcript
+        log_label_h = 0
+        transcript_label_h = 0
         if dpg.does_item_exist("log_label"):
-            label_w, label_h = dpg.get_item_rect_size("log_label")
+            _, log_label_h = dpg.get_item_rect_size("log_label")
+        if dpg.does_item_exist("transcript_label"):
+            _, transcript_label_h = dpg.get_item_rect_size("transcript_label")
 
-        available_height = max(0, height - 2 * padding - content_height)
-        space_for_log_text = max(0, available_height - label_h - (2 * self.vertical_spacing))
-        target_log_height = max(self.log_min_height, space_for_log_text)
-        if dpg.does_item_exist("log_text") and target_log_height:
-            dpg.configure_item("log_text", height=int(target_log_height))
+        # Calculate available height for both text areas
+        # Account for padding, content, labels, and spacing between elements
+        total_label_height = log_label_h + transcript_label_h
+        total_spacing = 4 * self.vertical_spacing  # spacing around and between elements
+        available_height = max(0, height - 2 * padding - content_height - total_label_height - total_spacing)
+
+        # Distribute available height evenly between log and transcript
+        # Each gets half the available space, constrained by min/max limits
+        half_available = available_height / 2
+        min_height = 80
+        # Max can be infinite
+        max_height = float('inf')
+
+        # Calculate target heights with constraints
+        target_height = max(min_height, min(max_height, half_available))
+
+        # Apply heights to both text areas
+        if dpg.does_item_exist("log_text"):
+            dpg.configure_item("log_text", height=int(target_height))
+        if dpg.does_item_exist("transcript_text"):
+            dpg.configure_item("transcript_text", height=int(target_height))
 
     def browse_destination(self):
         """Open directory chooser to avoid manual path entry"""
@@ -206,6 +240,64 @@ class MediaDownloaderGUI:
         selected_path = app_data.get("file_path_name") or app_data.get("current_path")
         if selected_path:
             dpg.set_value("dest_input", selected_path)
+
+    def extract_youtube_video_id(self, youtube_url):
+        """Extract YouTube video ID from various URL formats"""
+        youtube_patterns = [
+            r'(?:https?://)?(?:www\.)?youtube\.com/watch\?.*v=([\w-]+)',
+            r'(?:https?://)?(?:www\.)?youtu\.be/([\w-]+)',
+            r'(?:https?://)?(?:www\.)?m\.youtube\.com/watch\?.*v=([\w-]+)',
+            r'(?:https?://)?(?:www\.)?youtube\.com/embed/([\w-]+)',
+            r'(?:https?://)?(?:www\.)?youtube\.com/v/([\w-]+)',
+        ]
+        for pattern in youtube_patterns:
+            match = re.search(pattern, youtube_url)
+            if match:
+                return match.group(1)
+        return None
+
+    def fetch_transcript(self, url):
+        """Fetch transcript for YouTube video"""
+        video_id = self.extract_youtube_video_id(url)
+        if not video_id:
+            return None, "Not a valid YouTube URL"
+
+        try:
+            # Use the instance-based API correctly
+            api = YouTubeTranscriptApi()
+            transcript = api.fetch(video_id, languages=['en'])
+
+            # Format transcript as readable text
+            transcript_text = ""
+            for entry in transcript:
+                # Convert seconds to MM:SS format
+                minutes, seconds = divmod(int(entry.start), 60)
+                timestamp = f"{minutes:02d}:{seconds:02d}"
+                # Clean up text and handle potential Unicode issues
+                clean_text = entry.text.replace('\n', ' ').strip()
+                transcript_text += f"[{timestamp}] {clean_text}\n"
+            return transcript_text, None
+        except Exception as e:
+            return None, f"Transcript not available: {str(e)}"
+
+    def save_transcript_to_file(self, transcript_text, media_filename, destination):
+        """Save transcript to a text file with similar name as media file"""
+        if not transcript_text:
+            return None
+
+        try:
+            # Create transcript filename based on media filename
+            base_name = os.path.splitext(media_filename)[0]
+            transcript_filename = f"{base_name}_transcript.txt"
+            transcript_path = os.path.join(destination, transcript_filename)
+
+            with open(transcript_path, 'w', encoding='utf-8') as f:
+                f.write(transcript_text)
+
+            return transcript_path
+        except Exception as e:
+            self.log_message(f"ERROR: Failed to save transcript: {str(e)}")
+            return None
 
     def log_message(self, message):
         """Add message to log text area"""
@@ -255,6 +347,9 @@ class MediaDownloaderGUI:
                 self.update_status("Error: Cannot create directory", (255, 100, 100))
                 return
 
+        # Get transcript option
+        transcript_enabled = dpg.get_value("transcript_enabled")
+
         # Disable UI elements during download
         dpg.configure_item("download_btn", enabled=False)
         dpg.configure_item("url_input", enabled=False)
@@ -262,9 +357,11 @@ class MediaDownloaderGUI:
         dpg.configure_item("download_type", enabled=False)
         dpg.configure_item("audio_quality", enabled=False)
         dpg.configure_item("video_quality", enabled=False)
+        dpg.configure_item("transcript_enabled", enabled=False)
 
-        # Clear log and start progress
+        # Clear log and transcript, start progress
         dpg.set_value("log_text", "")
+        dpg.set_value("transcript_text", "")
         self.update_status("Downloading...", (0, 255, 0))
         self.update_progress(0.1)
         self.is_downloading = True
@@ -272,7 +369,7 @@ class MediaDownloaderGUI:
         # Start download in separate thread
         self.download_thread = threading.Thread(
             target=self.download_media,
-            args=(url, destination, download_type)
+            args=(url, destination, download_type, transcript_enabled)
         )
         self.download_thread.daemon = True
         self.download_thread.start()
@@ -293,12 +390,27 @@ class MediaDownloaderGUI:
             self.update_progress(0.9)
             self.log_message(f"Finished downloading: {d['filename']}")
 
-    def download_media(self, video_url, destination, download_type):
+    def download_media(self, video_url, destination, download_type, transcript_enabled=False):
         """Download media from video URL"""
+        transcript_text = None
+        media_filename = None
+
         try:
             self.log_message(f"Starting {download_type} download from: {video_url}")
             self.log_message(f"Destination: {destination}")
             self.update_progress(0.1)
+
+            # Fetch transcript if enabled and it's a YouTube URL
+            if transcript_enabled:
+                self.log_message("Fetching transcript...")
+                transcript_text, transcript_error = self.fetch_transcript(video_url)
+                if transcript_text:
+                    self.log_message("Transcript fetched successfully!")
+                    dpg.set_value("transcript_text", transcript_text)
+                elif transcript_error:
+                    self.log_message(f"Transcript: {transcript_error}")
+                    dpg.set_value("transcript_text", f"Transcript not available: {transcript_error}")
+                self.update_progress(0.15)
 
             # Common options to avoid 403 errors
             common_opts = {
@@ -345,7 +457,8 @@ class MediaDownloaderGUI:
                     'format': format_str,
                 }
 
-            self.update_progress(0.2)
+                base_progress = 0.15 if transcript_enabled else 0.1
+                self.update_progress(base_progress + 0.05)
             self.log_message("Fetching video information...")
 
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
@@ -368,7 +481,13 @@ class MediaDownloaderGUI:
                     else:
                         self.log_message(f"Duration: {minutes}:{seconds:02d}")
 
-                self.update_progress(0.3)
+                # Store the expected filename for transcript saving
+                if download_type == "Audio (MP3)":
+                    media_filename = f"{title}.mp3"
+                else:
+                    media_filename = f"{title}.webm"
+
+                self.update_progress(base_progress + 0.15)
 
                 # Download the media
                 if download_type == "Audio (MP3)":
@@ -378,10 +497,20 @@ class MediaDownloaderGUI:
 
                 ydl.download([video_url])
 
+            # Save transcript to file if available
+            if transcript_enabled and transcript_text and media_filename:
+                self.log_message("Saving transcript to file...")
+                transcript_path = self.save_transcript_to_file(transcript_text, media_filename, destination)
+                if transcript_path:
+                    self.log_message(f"Transcript saved to: {os.path.basename(transcript_path)}")
+
             self.update_progress(1.0)
             self.log_message("Download completed successfully!")
             media_type = "MP3" if download_type == "Audio (MP3)" else "Video"
-            self.update_status(f"Success: {media_type} downloaded!", (0, 255, 0))
+            success_msg = f"Success: {media_type} downloaded!"
+            if transcript_enabled and transcript_text:
+                success_msg += " (with transcript)"
+            self.update_status(success_msg, (0, 255, 0))
 
         except youtube_dl.DownloadError as e:
             error_msg = f"Download error: {str(e)}"
@@ -410,6 +539,7 @@ class MediaDownloaderGUI:
             dpg.configure_item("download_type", enabled=True)
             dpg.configure_item("audio_quality", enabled=True)
             dpg.configure_item("video_quality", enabled=True)
+            dpg.configure_item("transcript_enabled", enabled=True)
             self.is_downloading = False
 
     def run(self):

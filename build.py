@@ -17,23 +17,27 @@ def clean_build():
     for dir_name in build_dirs:
         if Path(dir_name).exists():
             shutil.rmtree(dir_name)
-            print(f"✓ Cleaned {dir_name}/")
+            print(f"[OK] Cleaned {dir_name}/")
 
     for spec_file in spec_files:
         spec_file.unlink()
-        print(f"✓ Removed {spec_file}")
+        print(f"[OK] Removed {spec_file}")
 
 def build_executable():
     """Build executable using PyInstaller with project configuration"""
-    print("Building MP3 Downloader executable...")
-    
-    # PyInstaller command with comprehensive yt-dlp inclusion
+    print("Building Media Downloader executable...")
+
+    # PyInstaller command with comprehensive dependencies inclusion
     cmd = [
         "pyinstaller",
         "--onefile",
-        "--windowed", 
+        "--windowed",
         "--name=Media_Downloader",
         "--collect-all=yt_dlp",
+        "--collect-all=transformers",
+        "--collect-all=torch",
+        "--collect-all=youtube_transcript_api",
+        "--collect-all=dearpygui",
         "--hidden-import=yt_dlp",
         "--hidden-import=yt_dlp.extractor",
         "--hidden-import=yt_dlp.extractor.youtube",
@@ -43,30 +47,41 @@ def build_executable():
         "--hidden-import=yt_dlp.postprocessor.ffmpeg",
         "--hidden-import=yt_dlp.utils",
         "--hidden-import=yt_dlp.version",
-        "--hidden-import=tkinter",
-        "--hidden-import=tkinter.ttk", 
-        "--hidden-import=tkinter.filedialog",
-        "--hidden-import=tkinter.messagebox",
+        "--hidden-import=youtube_transcript_api",
+        "--hidden-import=transformers",
+        "--hidden-import=transformers.models",
+        "--hidden-import=transformers.models.bart",
+        "--hidden-import=transformers.pipelines",
+        "--hidden-import=torch",
+        "--hidden-import=torch.nn",
+        "--hidden-import=torch.nn.functional",
+        "--hidden-import=dearpygui.dearpygui",
+        "--hidden-import=warnings",
+        "--hidden-import=re",
+        "--hidden-import=string",
+        "--hidden-import=threading",
+        "--hidden-import=pathlib",
+        "--hidden-import=time",
         "--clean",
         "main.py"
     ]
 
     try:
         result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print("✓ Build successful!")
+        print("[OK] Build successful!")
 
         exe_path = Path("dist/Media_Downloader.exe")
         if exe_path.exists():
             size_mb = exe_path.stat().st_size / (1024 * 1024)
-            print(f"✓ Executable created: {exe_path}")
-            print(f"✓ Size: {size_mb:.1f} MB")
+            print(f"[OK] Executable created: {exe_path}")
+            print(f"[OK] Size: {size_mb:.1f} MB")
             return True
         else:
-            print("✗ Executable not found after build")
+            print("[ERROR] Executable not found after build")
             return False
 
     except subprocess.CalledProcessError as e:
-        print(f"✗ Build failed: {e}")
+        print(f"[ERROR] Build failed: {e}")
         if e.stdout:
             print("STDOUT:", e.stdout)
         if e.stderr:
@@ -80,15 +95,15 @@ def main():
     try:
         subprocess.run(["pyinstaller", "--version"],
                       check=True, capture_output=True)
-        print("✓ PyInstaller is available")
+        print("[OK] PyInstaller is available")
     except (subprocess.CalledProcessError, FileNotFoundError):
-        print("✗ PyInstaller not found. Installing...")
+        print("[INFO] PyInstaller not found. Installing...")
         try:
             subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"],
                           check=True)
-            print("✓ PyInstaller installed")
+            print("[OK] PyInstaller installed")
         except subprocess.CalledProcessError:
-            print("✗ Failed to install PyInstaller")
+            print("[ERROR] Failed to install PyInstaller")
             return False
 
     # Clean and build

@@ -15,9 +15,9 @@ class MediaDownloaderGUI:
         self.download_thread = None
         self.is_downloading = False
         # Consistent left/right and top/bottom padding inside main window
-        self.window_padding = 20
+        self.window_padding = 15  # Reduced from 20 for more content space
         # Vertical spacing used in height calculations
-        self.vertical_spacing = 8
+        self.vertical_spacing = 6  # Reduced from 8 for tighter layout
         # Initialize summarizer (lazy loading)
         self.summarizer = None
         self.setup_gui()
@@ -126,25 +126,39 @@ class MediaDownloaderGUI:
 
             # Transcript display
             dpg.add_text("Transcript:", tag="transcript_label")
-            dpg.add_input_text(
-                tag="transcript_text",
-                multiline=True,
-                readonly=True,
-                height=80,  # Start with minimum height
+            with dpg.child_window(
+                tag="transcript_window",
+                height=80,
                 width=760,
-                hint="Transcript will appear here when available..."
-            )
+                horizontal_scrollbar=False,
+                border=True
+            ):
+                dpg.add_text(
+                    "Transcript will appear here when available...",
+                    tag="transcript_text",
+                    wrap=740,  # Reduced padding for more text space
+                    color=(150, 150, 150)  # Gray hint color
+                )
+            # Apply reduced padding theme to transcript window
+            dpg.bind_item_theme("transcript_window", "child_window_theme")
 
             # Summary display
             dpg.add_text("Summary:", tag="summary_label")
-            dpg.add_input_text(
-                tag="summary_text",
-                multiline=True,
-                readonly=True,
-                height=80,  # Start with minimum height
+            with dpg.child_window(
+                tag="summary_window",
+                height=80,
                 width=760,
-                hint="Summary will appear here when generated..."
-            )
+                horizontal_scrollbar=False,
+                border=True
+            ):
+                dpg.add_text(
+                    "Summary will appear here when generated...",
+                    tag="summary_text",
+                    wrap=740,  # Reduced padding for more text space
+                    color=(150, 150, 150)  # Gray hint color
+                )
+            # Apply reduced padding theme to summary window
+            dpg.bind_item_theme("summary_window", "child_window_theme")
 
             # Status log
             dpg.add_text("Log:", tag="log_label")
@@ -172,6 +186,12 @@ class MediaDownloaderGUI:
                     self.window_padding,
                 )
         dpg.bind_item_theme("main_window", "main_window_theme")
+
+        # Create theme for child windows with reduced padding
+        with dpg.theme(tag="child_window_theme"):
+            with dpg.theme_component(dpg.mvChildWindow):
+                dpg.add_theme_style(dpg.mvStyleVar_WindowPadding, 8, 8)  # Reduced internal padding
+                dpg.add_theme_style(dpg.mvStyleVar_ItemSpacing, 4, 4)    # Reduced item spacing
 
         # Handle dynamic resizing to anchor widgets to window width
         with dpg.item_handler_registry(tag="main_window_handlers"):
@@ -205,9 +225,18 @@ class MediaDownloaderGUI:
         content_width = max(100, width - 2 * padding)
 
         # Full-width elements
-        for item in ("url_input", "progress_bar", "log_text", "transcript_text", "summary_text", "download_btn"):
+        for item in ("url_input", "progress_bar", "log_text", "download_btn"):
             if dpg.does_item_exist(item):
                 dpg.configure_item(item, width=content_width)
+
+        # Child windows for transcript and summary
+        for item in ("transcript_window", "summary_window"):
+            if dpg.does_item_exist(item):
+                dpg.configure_item(item, width=content_width)
+                # Update wrap width for text inside
+                text_tag = item.replace("_window", "_text")
+                if dpg.does_item_exist(text_tag):
+                    dpg.configure_item(text_tag, wrap=content_width - 20)  # Reduced padding for more text space
 
         # Destination row: input takes remaining space beside fixed Browse button
         dest_input_width = max(100, content_width - browse_button_width - spacing)
@@ -249,11 +278,11 @@ class MediaDownloaderGUI:
         # Calculate target heights with constraints
         target_height = max(min_height, min(max_height, third_available))
 
-        # Apply heights to all three text areas
-        if dpg.does_item_exist("transcript_text"):
-            dpg.configure_item("transcript_text", height=int(target_height))
-        if dpg.does_item_exist("summary_text"):
-            dpg.configure_item("summary_text", height=int(target_height))
+        # Apply heights to all three areas (child windows and log text)
+        if dpg.does_item_exist("transcript_window"):
+            dpg.configure_item("transcript_window", height=int(target_height))
+        if dpg.does_item_exist("summary_window"):
+            dpg.configure_item("summary_window", height=int(target_height))
         if dpg.does_item_exist("log_text"):
             dpg.configure_item("log_text", height=int(target_height))
 
@@ -339,7 +368,7 @@ class MediaDownloaderGUI:
             api = YouTubeTranscriptApi()
             transcript = api.fetch(video_id, languages=['en'])
 
-            # Format transcript as readable text
+            # Format transcript as readable text with timestamps
             transcript_text = ""
             for entry in transcript:
                 # Convert seconds to MM:SS format
@@ -351,6 +380,28 @@ class MediaDownloaderGUI:
             return transcript_text, None
         except Exception as e:
             return None, f"Transcript not available: {str(e)}"
+
+    def get_clean_transcript_text(self, transcript_text):
+        """Extract clean text from timestamped transcript for better readability"""
+        if not transcript_text:
+            return ""
+
+        # Remove timestamps and clean up the text
+        clean_text = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', transcript_text)
+        # Remove empty brackets
+        clean_text = re.sub(r'\[\s*\]\s*', '', clean_text)
+        # Clean up multiple spaces and normalize whitespace
+        clean_text = re.sub(r'\s+', ' ', clean_text)
+        # Split into sentences and rejoin for better formatting
+        sentences = re.split(r'([.!?]+)', clean_text)
+        formatted_text = ""
+        for i in range(0, len(sentences)-1, 2):
+            sentence = sentences[i].strip()
+            punct = sentences[i+1] if i+1 < len(sentences) else ""
+            if sentence:
+                formatted_text += sentence + punct + " "
+
+        return formatted_text.strip()
 
     def get_summarizer(self):
         """Initialize and return the summarizer (lazy loading)"""
@@ -367,20 +418,28 @@ class MediaDownloaderGUI:
         return self.summarizer
 
     def chunk_text(self, text, max_chunk_size=1000):
-        """Split text into chunks for summarization"""
-        sentences = text.split('. ')
+        """Split text into chunks for summarization, preserving sentence boundaries"""
+        # Split on multiple sentence endings for better boundary detection
+        sentences = re.split(r'[.!?]+\s+', text)
         chunks = []
         current_chunk = ""
 
         for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            # Estimate the length with proper punctuation
+            sentence_with_punct = sentence + '. '
+
             # Add sentence to current chunk if it fits
-            if len(current_chunk + sentence + '. ') <= max_chunk_size:
-                current_chunk += sentence + '. '
+            if len(current_chunk + sentence_with_punct) <= max_chunk_size:
+                current_chunk += sentence_with_punct
             else:
                 # Save current chunk and start new one
                 if current_chunk:
                     chunks.append(current_chunk.strip())
-                current_chunk = sentence + '. '
+                current_chunk = sentence_with_punct
 
         # Add the last chunk
         if current_chunk:
@@ -398,8 +457,13 @@ class MediaDownloaderGUI:
             if not summarizer:
                 return None, "Summarization model not available"
 
-            # Remove timestamps from transcript for better summarization
-            clean_text = re.sub(r'\[\d{2}:\d{2}\]\s*', '', transcript_text)
+            # Remove timestamps and clean text for better summarization
+            # Remove various timestamp formats: [MM:SS], [HH:MM:SS], (MM:SS), etc.
+            clean_text = re.sub(r'\[?\d{1,2}:\d{2}(?::\d{2})?\]?\s*', '', transcript_text)
+            # Remove any remaining brackets or parentheses that might contain timestamps
+            clean_text = re.sub(r'\[\s*\]\s*', '', clean_text)
+            # Clean up multiple spaces and newlines
+            clean_text = re.sub(r'\s+', ' ', clean_text)
             clean_text = clean_text.strip()
 
             if len(clean_text) < 50:
@@ -415,7 +479,9 @@ class MediaDownloaderGUI:
                     if len(chunk) < 50:  # Skip very short chunks
                         continue
                     try:
-                        summary = summarizer(chunk, max_length=100, min_length=20, do_sample=False)
+                        # Adaptive max_length based on chunk size
+                        chunk_max_length = min(100, max(30, len(chunk) // 4))
+                        summary = summarizer(chunk, max_length=chunk_max_length, min_length=20, do_sample=False)
                         chunk_summaries.append(summary[0]['summary_text'])
                         self.log_message(f"Processed chunk {i+1}/{len(chunks)}")
                     except Exception as e:
@@ -427,15 +493,17 @@ class MediaDownloaderGUI:
                     combined_summary = ' '.join(chunk_summaries)
                     # If combined summary is still too long, summarize it again
                     if len(combined_summary) > 1000:
-                        final_summary = summarizer(combined_summary, max_length=200, min_length=50, do_sample=False)
+                        final_max_length = min(200, max(50, len(combined_summary) // 3))
+                        final_summary = summarizer(combined_summary, max_length=final_max_length, min_length=50, do_sample=False)
                         return final_summary[0]['summary_text'], None
                     else:
                         return combined_summary, None
                 else:
                     return None, "Failed to generate summary from chunks"
             else:
-                # Short transcript, summarize directly
-                summary = summarizer(clean_text, max_length=150, min_length=30, do_sample=False)
+                # Short transcript, summarize directly with adaptive length
+                text_max_length = min(150, max(30, len(clean_text) // 3))
+                summary = summarizer(clean_text, max_length=text_max_length, min_length=20, do_sample=False)
                 return summary[0]['summary_text'], None
 
         except Exception as e:
@@ -543,8 +611,10 @@ class MediaDownloaderGUI:
 
         # Clear log, transcript, and summary, start progress
         dpg.set_value("log_text", "")
-        dpg.set_value("transcript_text", "")
-        dpg.set_value("summary_text", "")
+        dpg.set_value("transcript_text", "Transcript will appear here when available...")
+        dpg.configure_item("transcript_text", color=(150, 150, 150))  # Gray hint color
+        dpg.set_value("summary_text", "Summary will appear here when generated...")
+        dpg.configure_item("summary_text", color=(150, 150, 150))  # Gray hint color
         self.update_status("Downloading...", (0, 255, 0))
         self.update_progress(0.1)
         self.is_downloading = True
@@ -591,6 +661,7 @@ class MediaDownloaderGUI:
                 if transcript_text:
                     self.log_message("Transcript fetched successfully!")
                     dpg.set_value("transcript_text", transcript_text)
+                    dpg.configure_item("transcript_text", color=(255, 255, 255))  # White text for content
 
                     # Generate summary if enabled and transcript is available
                     if summary_enabled:
@@ -599,14 +670,18 @@ class MediaDownloaderGUI:
                         if summary_text:
                             self.log_message("Summary generated successfully!")
                             dpg.set_value("summary_text", summary_text)
+                            dpg.configure_item("summary_text", color=(255, 255, 255))  # White text for content
                         elif summary_error:
                             self.log_message(f"Summary: {summary_error}")
                             dpg.set_value("summary_text", f"Summary not available: {summary_error}")
+                            dpg.configure_item("summary_text", color=(255, 150, 150))  # Light red for error
                 elif transcript_error:
                     self.log_message(f"Transcript: {transcript_error}")
                     dpg.set_value("transcript_text", f"Transcript not available: {transcript_error}")
+                    dpg.configure_item("transcript_text", color=(255, 150, 150))  # Light red for error
                     if summary_enabled:
                         dpg.set_value("summary_text", "Summary not available: No transcript")
+                        dpg.configure_item("summary_text", color=(255, 150, 150))  # Light red for error
 
                 progress_increment = 0.15 if summary_enabled else 0.1
                 self.update_progress(0.1 + progress_increment)

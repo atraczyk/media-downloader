@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple build script for MP3 Downloader executable
+Simple build script for Media Downloader executable
 Uses pyproject.toml configuration
 """
 
@@ -62,6 +62,17 @@ def build_executable():
         "--hidden-import=threading",
         "--hidden-import=pathlib",
         "--hidden-import=time",
+        "--hidden-import=backend",
+        "--hidden-import=backend.interfaces",
+        "--hidden-import=backend.media_downloader",
+        "--hidden-import=backend.transcript_processor",
+        "--hidden-import=backend.summarization_service",
+        "--hidden-import=backend.file_manager",
+        "--hidden-import=backend.logger",
+        "--hidden-import=backend.service_container",
+        "--hidden-import=backend.media_downloader_facade",
+        "--hidden-import=gui",
+        "--hidden-import=gui.media_downloader_gui",
         "--clean",
         "main.py"
     ]
@@ -89,7 +100,7 @@ def build_executable():
         return False
 
 def main():
-    print("=== MP3 Downloader Build Script ===\n")
+    print("=== Media Downloader Build Script ===\n")
 
     # Check if PyInstaller is available
     try:

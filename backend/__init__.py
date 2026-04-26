@@ -6,7 +6,7 @@ Clean separation of business logic from presentation layer following SOLID princ
 from .media_downloader_facade import MediaDownloaderFacade
 from .interfaces import (
     DownloadRequest, DownloadProgress, DownloadStatus, DownloadType,
-    TranscriptResult, SummaryResult, MediaInfo
+    TranscriptResult, MediaInfo
 )
 
 # Main facade for external use
@@ -17,6 +17,5 @@ __all__ = [
     'DownloadStatus',
     'DownloadType',
     'TranscriptResult',
-    'SummaryResult',
     'MediaInfo'
 ]

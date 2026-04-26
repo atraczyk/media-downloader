@@ -402,17 +402,13 @@ def create_html_interface() -> str:
                 </div>
             </div>
 
-            <!-- Transcript & Summary Section -->
+            <!-- Transcript Section -->
             <div class="section">
-                <h3>📝 Transcript & Summary</h3>
+                <h3>📝 Transcript</h3>
                 <div class="checkbox-group">
                     <div class="checkbox-item">
                         <input type="checkbox" id="transcriptEnabled" checked />
                         <label for="transcriptEnabled">Download transcript (if available)</label>
-                    </div>
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="summaryEnabled" />
-                        <label for="summaryEnabled">Generate summary (requires transcript)</label>
                     </div>
                 </div>
             </div>
@@ -450,11 +446,6 @@ def create_html_interface() -> str:
                 <div id="transcriptSection" class="hidden">
                     <label>Transcript:</label>
                     <div id="transcriptText" class="text-area transcript"></div>
-                </div>
-
-                <div id="summarySection" class="hidden">
-                    <label>Summary:</label>
-                    <div id="summaryText" class="text-area summary"></div>
                 </div>
             </div>
 
@@ -505,19 +496,6 @@ def create_html_interface() -> str:
                 radio.addEventListener('change', onDownloadTypeChange);
             });
 
-            // Summary checkbox dependency
-            document.getElementById('summaryEnabled').addEventListener('change', function() {
-                if (this.checked) {
-                    document.getElementById('transcriptEnabled').checked = true;
-                }
-            });
-
-            // Transcript checkbox dependency
-            document.getElementById('transcriptEnabled').addEventListener('change', function() {
-                if (!this.checked) {
-                    document.getElementById('summaryEnabled').checked = false;
-                }
-            });
 
             // Keyboard shortcuts
             document.addEventListener('keydown', function(e) {
@@ -637,8 +615,7 @@ def create_html_interface() -> str:
                 downloadType: document.querySelector('input[name="downloadType"]:checked').value,
                 audioQuality: document.getElementById('audioQuality').value,
                 videoQuality: document.getElementById('videoQuality').value,
-                transcriptEnabled: document.getElementById('transcriptEnabled').checked,
-                summaryEnabled: document.getElementById('summaryEnabled').checked
+                transcriptEnabled: document.getElementById('transcriptEnabled').checked
             };
 
             try {
@@ -687,7 +664,6 @@ def create_html_interface() -> str:
         function clearResults() {
             document.getElementById('resultsSection').classList.add('hidden');
             document.getElementById('transcriptSection').classList.add('hidden');
-            document.getElementById('summarySection').classList.add('hidden');
         }
 
         async function clearLogs() {
@@ -731,22 +707,6 @@ def create_html_interface() -> str:
             } else if (transcriptData.error) {
                 transcriptText.textContent = `Transcript not available: ${transcriptData.error}`;
                 transcriptSection.classList.remove('hidden');
-                resultsSection.classList.remove('hidden');
-            }
-        };
-
-        window.handleSummaryUpdate = function(summaryData) {
-            const summarySection = document.getElementById('summarySection');
-            const summaryText = document.getElementById('summaryText');
-            const resultsSection = document.getElementById('resultsSection');
-
-            if (summaryData.summary) {
-                summaryText.textContent = summaryData.summary;
-                summarySection.classList.remove('hidden');
-                resultsSection.classList.remove('hidden');
-            } else if (summaryData.error) {
-                summaryText.textContent = `Summary not available: ${summaryData.error}`;
-                summarySection.classList.remove('hidden');
                 resultsSection.classList.remove('hidden');
             }
         };

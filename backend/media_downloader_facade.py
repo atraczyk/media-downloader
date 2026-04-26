@@ -9,7 +9,7 @@ from typing import Optional, Callable
 
 from .interfaces import (
     DownloadRequest, DownloadProgress, DownloadStatus,
-    TranscriptResult, SummaryResult
+    TranscriptResult
 )
 from .service_container import ServiceContainer
 
@@ -36,7 +36,6 @@ class MediaDownloaderFacade:
         request: DownloadRequest,
         progress_callback: Callable[[DownloadProgress], None],
         transcript_callback: Optional[Callable[[TranscriptResult], None]] = None,
-        summary_callback: Optional[Callable[[SummaryResult], None]] = None,
         completion_callback: Optional[Callable[[bool, str, Optional[str]], None]] = None
     ) -> bool:
         """
@@ -58,7 +57,7 @@ class MediaDownloaderFacade:
         self._is_downloading = True
         self._download_thread = threading.Thread(
             target=self._download_worker,
-            args=(request, progress_callback, transcript_callback, summary_callback, completion_callback),
+            args=(request, progress_callback, transcript_callback, completion_callback),
             daemon=True
         )
         self._download_thread.start()
@@ -82,7 +81,6 @@ class MediaDownloaderFacade:
         request: DownloadRequest,
         progress_callback: Callable[[DownloadProgress], None],
         transcript_callback: Optional[Callable[[TranscriptResult], None]],
-        summary_callback: Optional[Callable[[SummaryResult], None]],
         completion_callback: Optional[Callable[[bool, str, Optional[str]], None]]
     ) -> None:
         """Worker method that runs in separate thread"""
@@ -97,11 +95,9 @@ class MediaDownloaderFacade:
             # Get services
             downloader = self._container.get_media_downloader()
             transcript_processor = self._container.get_transcript_processor()
-            summarization_service = self._container.get_summarization_service()
             file_manager = self._container.get_file_manager()
 
             transcript_result = None
-            summary_result = None
             media_filename = None
 
             # Process transcript if enabled
@@ -116,22 +112,8 @@ class MediaDownloaderFacade:
                 if transcript_callback:
                     transcript_callback(transcript_result)
 
-                # Process summary if enabled and transcript is available
-                if request.summary_enabled and transcript_result.text:
-                    progress_callback(DownloadProgress(
-                        status=DownloadStatus.PROCESSING,
-                        progress=0.2,
-                        message="Generating summary..."
-                    ))
-
-                    # Use clean text for summarization if available
-                    text_to_summarize = transcript_result.clean_text or transcript_result.text
-                    summary_result = summarization_service.summarize_text(text_to_summarize)
-                    if summary_callback:
-                        summary_callback(summary_result)
-
             # Set base progress based on preprocessing
-            base_progress = 0.25 if (request.transcript_enabled and request.summary_enabled) else 0.15 if request.transcript_enabled else 0.1
+            base_progress = 0.15 if request.transcript_enabled else 0.1
 
             # Download media
             progress_callback(DownloadProgress(
@@ -150,10 +132,6 @@ class MediaDownloaderFacade:
                 if transcript_result and transcript_result.text and media_filename:
                     logger.log("Saving transcript to file...")
                     file_manager.save_transcript(transcript_result.text, media_filename, request.destination)
-
-                if summary_result and summary_result.summary and media_filename:
-                    logger.log("Saving summary to file...")
-                    file_manager.save_summary(summary_result.summary, media_filename, request.destination)
 
                 # Log completion message
                 logger.log("Download completed successfully!")

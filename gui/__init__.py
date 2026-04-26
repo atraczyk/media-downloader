@@ -1,2 +1,2 @@
 # GUI module for Media Downloader
-# Presentation layer using DearPyGui
+# Presentation layer using PyWebView

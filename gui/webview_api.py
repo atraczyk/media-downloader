@@ -13,7 +13,7 @@ import webview
 
 from backend import (
     MediaDownloaderFacade, DownloadRequest, DownloadProgress,
-    DownloadStatus, DownloadType, TranscriptResult, SummaryResult
+    DownloadStatus, DownloadType, TranscriptResult
 )
 
 
@@ -127,8 +127,7 @@ class MediaDownloaderAPI:
                 download_type=download_type,
                 audio_quality=request_data.get('audioQuality', '192'),
                 video_quality=request_data.get('videoQuality', 'best'),
-                transcript_enabled=request_data.get('transcriptEnabled', False),
-                summary_enabled=request_data.get('summaryEnabled', False)
+                transcript_enabled=request_data.get('transcriptEnabled', False)
             )
 
             # Clear previous logs
@@ -139,7 +138,6 @@ class MediaDownloaderAPI:
                 request=request,
                 progress_callback=self._handle_progress,
                 transcript_callback=self._handle_transcript,
-                summary_callback=self._handle_summary,
                 completion_callback=self._handle_completion
             )
 
@@ -198,15 +196,6 @@ class MediaDownloaderAPI:
                 'clean_text': result.clean_text
             }
             self.window.evaluate_js(f'window.handleTranscriptUpdate({json.dumps(transcript_data)})')
-
-    def _handle_summary(self, result: SummaryResult):
-        """Handle summary results from backend"""
-        if self.window:
-            summary_data = {
-                'summary': result.summary,
-                'error': result.error
-            }
-            self.window.evaluate_js(f'window.handleSummaryUpdate({json.dumps(summary_data)})')
 
     def _handle_completion(self, success: bool, message: str, filename: Optional[str]):
         """Handle download completion from backend"""

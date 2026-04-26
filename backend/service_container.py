@@ -7,12 +7,11 @@ Both should depend on abstractions.
 from typing import Optional, Callable
 
 from .interfaces import (
-    IMediaDownloader, ITranscriptProcessor, ISummarizationService,
+    IMediaDownloader, ITranscriptProcessor,
     IFileManager, ILogger
 )
 from .media_downloader import MediaDownloadService
 from .transcript_processor import TranscriptProcessorService
-from .summarization_service import SummarizationService
 from .file_manager import FileManagerService
 from .logger import LoggerService
 
@@ -48,10 +47,6 @@ class ServiceContainer:
         transcript_processor = TranscriptProcessorService(logger)
         self._services['transcript_processor'] = transcript_processor
 
-        # Create summarization service (depends on logger)
-        summarization_service = SummarizationService(logger)
-        self._services['summarization_service'] = summarization_service
-
         # Create media downloader (depends on logger and file_manager)
         media_downloader = MediaDownloadService(logger, file_manager)
         self._services['media_downloader'] = media_downloader
@@ -67,10 +62,6 @@ class ServiceContainer:
     def get_transcript_processor(self) -> ITranscriptProcessor:
         """Get transcript processor service instance"""
         return self._services['transcript_processor']
-
-    def get_summarization_service(self) -> ISummarizationService:
-        """Get summarization service instance"""
-        return self._services['summarization_service']
 
     def get_media_downloader(self) -> IMediaDownloader:
         """Get media downloader service instance"""

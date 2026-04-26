@@ -34,7 +34,6 @@ class DownloadRequest:
     audio_quality: Optional[str] = "192"
     video_quality: Optional[str] = "best"
     transcript_enabled: bool = False
-    summary_enabled: bool = False
 
 
 @dataclass
@@ -61,13 +60,6 @@ class TranscriptResult:
     text: Optional[str]
     error: Optional[str]
     clean_text: Optional[str] = None
-
-
-@dataclass
-class SummaryResult:
-    """Data class representing summary generation result"""
-    summary: Optional[str]
-    error: Optional[str]
 
 
 # Progress callback type
@@ -131,33 +123,6 @@ class ITranscriptProcessor(ABC):
 
         Returns:
             Cleaned transcript text
-        """
-        pass
-
-
-class ISummarizationService(ABC):
-    """Interface for text summarization functionality"""
-
-    @abstractmethod
-    def summarize_text(self, text: str) -> SummaryResult:
-        """
-        Generate summary from text
-
-        Args:
-            text: Text to summarize
-
-        Returns:
-            SummaryResult with summary or error
-        """
-        pass
-
-    @abstractmethod
-    def is_available(self) -> bool:
-        """
-        Check if summarization service is available
-
-        Returns:
-            True if service is ready, False otherwise
         """
         pass
 

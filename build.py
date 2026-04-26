@@ -37,7 +37,7 @@ def build_executable():
         "--collect-all=transformers",
         "--collect-all=torch",
         "--collect-all=youtube_transcript_api",
-        "--collect-all=dearpygui",
+        "--collect-all=webview",
         "--hidden-import=yt_dlp",
         "--hidden-import=yt_dlp.extractor",
         "--hidden-import=yt_dlp.extractor.youtube",
@@ -55,7 +55,7 @@ def build_executable():
         "--hidden-import=torch",
         "--hidden-import=torch.nn",
         "--hidden-import=torch.nn.functional",
-        "--hidden-import=dearpygui.dearpygui",
+        "--hidden-import=webview",
         "--hidden-import=warnings",
         "--hidden-import=re",
         "--hidden-import=string",
@@ -72,7 +72,7 @@ def build_executable():
         "--hidden-import=backend.service_container",
         "--hidden-import=backend.media_downloader_facade",
         "--hidden-import=gui",
-        "--hidden-import=gui.media_downloader_gui",
+        "--hidden-import=gui.media_downloader_webview",
         "--clean",
         "main.py"
     ]

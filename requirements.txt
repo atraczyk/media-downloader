@@ -1,6 +1,7 @@
 yt-dlp
 pyinstaller
-dearpygui
 youtube-transcript-api
 transformers
 torch
+pywebview
+curl-cffi

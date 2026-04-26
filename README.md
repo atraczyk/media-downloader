@@ -6,7 +6,7 @@ A modern GUI application for downloading audio and video from YouTube videos. Su
 
 - 🎵 Download audio from YouTube videos (MP3)
 - 🎬 Download videos in various qualities
-- 🎨 Modern Dear PyGui interface
+- 🎨 Modern WebView interface with responsive design
 - 📁 Easy destination folder selection
 - 📊 Real-time progress tracking
 - 🔄 Background download processing

@@ -28,6 +28,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeAllListeners: (channel: string) =>
     ipcRenderer.removeAllListeners(channel),
 
+  cancelDownload: () => ipcRenderer.invoke('download:cancel'),
+
+  showItem: (filePath: string) => ipcRenderer.invoke('shell:show-item', filePath),
+
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),

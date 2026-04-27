@@ -1,5 +1,6 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
-import { getMediaInfo, downloadMedia } from '../core/downloader.js'
+import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
+import path from 'path'
+import { getMediaInfo, downloadMedia, cancelDownload } from '../core/downloader.js'
 import { fetchTranscript } from '../core/transcript.js'
 import { saveTranscript, ensureDirectory } from '../core/file-manager.js'
 import { DownloadRequest } from '../core/types.js'
@@ -31,7 +32,9 @@ export function setupIpcHandlers(): void {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return { success: false, error: 'Window unavailable' }
 
-    const [dirOk, dirErr] = await ensureDirectory(request.destination)
+    const resolvedRequest = { ...request, destination: path.resolve(request.destination) }
+
+    const [dirOk, dirErr] = await ensureDirectory(resolvedRequest.destination)
     if (!dirOk) return { success: false, error: `Cannot create directory: ${dirErr}` }
 
     isDownloading = true
@@ -41,16 +44,16 @@ export function setupIpcHandlers(): void {
       try {
         let transcriptResult = null
 
-        if (request.transcriptEnabled) {
+        if (resolvedRequest.transcriptEnabled) {
           safeSend(win, 'download:progress', {
             status: 'processing', progress: 0.05, message: 'Fetching transcript...',
           })
-          transcriptResult = await fetchTranscript(request.url)
+          transcriptResult = await fetchTranscript(resolvedRequest.url)
           safeSend(win, 'download:transcript', transcriptResult)
         }
 
         const [success, result] = await downloadMedia(
-          request,
+          resolvedRequest,
           (p) => safeSend(win, 'download:progress', p),
           (msg) => safeSend(win, 'download:log', msg)
         )
@@ -73,6 +76,14 @@ export function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('download:get-status', () => ({ isDownloading }))
+
+  ipcMain.handle('download:cancel', () => {
+    cancelDownload()
+  })
+
+  ipcMain.handle('shell:show-item', (_, filePath: string) => {
+    shell.showItemInFolder(filePath)
+  })
 
   ipcMain.handle('window:minimize', (event) => {
     BrowserWindow.fromWebContents(event.sender)?.minimize()

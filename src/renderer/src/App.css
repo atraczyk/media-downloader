@@ -170,6 +170,14 @@ body {
 .btn-primary:hover:not(:disabled) { background: #106ebe; border-color: #106ebe; }
 .btn-primary:active:not(:disabled) { background: #005a9e; }
 
+.btn-cancel {
+  background: #c50f1f;
+  color: #fff;
+  border-color: #c50f1f;
+}
+
+.btn-cancel:hover:not(:disabled) { background: #a80000; border-color: #a80000; }
+
 .btn-secondary {
   background: #fff;
   color: #333;
@@ -242,6 +250,9 @@ input[type='checkbox'] {
   font-size: 12px;
   margin-top: 5px;
   min-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hint-ok    { color: #107c10; }
@@ -267,9 +278,15 @@ input[type='checkbox'] {
   transition: width 0.25s ease;
 }
 
+.progress-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+
 .progress-msg {
   font-size: 12px;
-  margin-top: 5px;
   color: #555;
 }
 

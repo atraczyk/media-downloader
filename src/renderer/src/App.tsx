@@ -35,6 +35,7 @@ export default function App() {
   const [progress, setProgress] = useState(0)
   const [progressStatus, setProgressStatus] = useState('')
   const [progressMsg, setProgressMsg] = useState('')
+  const [lastFile, setLastFile] = useState<string | null>(null)
 
   const [logs, setLogs] = useState<string[]>([])
   const [transcript, setTranscript] = useState<TranscriptData | null>(null)
@@ -42,6 +43,7 @@ export default function App() {
 
   const logsRef = useRef<HTMLDivElement>(null)
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const urlSeq = useRef(0)
 
   // Register IPC listeners once on mount
   useEffect(() => {
@@ -57,10 +59,11 @@ export default function App() {
 
     api.onComplete((d: CompleteData) => {
       setDownloading(false)
-      appendLog(d.success
-        ? `✓ Saved: ${d.filename ?? ''}`
-        : `✗ Failed: ${d.message}`
-      )
+      if (d.success && d.filename) setLastFile(d.filename)
+      const label = d.success
+        ? `✓ Saved: ${d.filename?.replace(/.*[\\/]/, '') ?? 'file'}`
+        : `✗ ${d.message}`
+      appendLog(label)
     })
 
     api.onLog((msg: string) => appendLog(msg))
@@ -86,14 +89,16 @@ export default function App() {
     setUrlTitle('')
     setUrlError('')
     if (urlTimer.current) clearTimeout(urlTimer.current)
-    if (!val.trim()) return
+    if (!val.trim()) { setUrlPending(false); return }
+    setUrlPending(true)
     urlTimer.current = setTimeout(() => validateUrl(val), 600)
   }
 
   async function validateUrl(val: string) {
-    setUrlPending(true)
+    const seq = ++urlSeq.current
     try {
       const res = await window.electronAPI.validateUrl(val)
+      if (seq !== urlSeq.current) return
       if (res.valid) {
         setUrlTitle(res.title ?? '')
         setUrlError('')
@@ -102,9 +107,10 @@ export default function App() {
         setUrlTitle('')
       }
     } catch {
+      if (seq !== urlSeq.current) return
       setUrlError('Validation failed')
     } finally {
-      setUrlPending(false)
+      if (seq === urlSeq.current) setUrlPending(false)
     }
   }
 
@@ -119,6 +125,7 @@ export default function App() {
     setProgress(0)
     setProgressMsg('')
     setProgressStatus('')
+    setLastFile(null)
     setLogs([])
     setTranscript(null)
     setShowTranscript(false)
@@ -138,9 +145,7 @@ export default function App() {
     }
   }
 
-  const btnLabel = downloading
-    ? 'Downloading…'
-    : dlType === 'audio' ? '↓ Download MP3' : '↓ Download Video'
+  const btnLabel = dlType === 'audio' ? '↓ Download MP3' : '↓ Download Video'
 
   const showProgress = downloading
     || progressStatus === 'completed'
@@ -261,11 +266,11 @@ export default function App() {
         {/* Download + Progress */}
         <div className="card">
           <button
-            className="btn btn-primary btn-full"
-            onClick={startDownload}
-            disabled={downloading || !url.trim()}
+            className={`btn btn-full ${downloading ? 'btn-cancel' : 'btn-primary'}`}
+            onClick={downloading ? () => window.electronAPI.cancelDownload() : startDownload}
+            disabled={!downloading && !url.trim()}
           >
-            {btnLabel}
+            {downloading ? '✕ Cancel' : btnLabel}
           </button>
 
           {showProgress && (
@@ -276,7 +281,14 @@ export default function App() {
                   style={{ width: `${Math.round(progress * 100)}%` }}
                 />
               </div>
-              <p className={`progress-msg s-${progressStatus}`}>{progressMsg}</p>
+              <div className="progress-footer">
+                <p className={`progress-msg s-${progressStatus}`}>{progressMsg}</p>
+                {lastFile && (
+                  <button className="btn btn-ghost" onClick={() => window.electronAPI.showItem(lastFile)}>
+                    Show in folder
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>

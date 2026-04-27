@@ -19,3 +19,6 @@ __pycache__/
 
 # App
 downloads/
+
+# Vendored binaries (fetched by scripts/update-ytdlp.mjs)
+resources/yt-dlp*

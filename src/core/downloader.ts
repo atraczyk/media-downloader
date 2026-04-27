@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { existsSync } from 'fs'
 import path from 'path'
 import { DownloadRequest, DownloadProgress, DownloadStatus, DownloadType, MediaInfo } from './types.js'
 import { sanitizeFilename } from './file-manager.js'
@@ -6,8 +7,22 @@ import { sanitizeFilename } from './file-manager.js'
 type ProgressCallback = (progress: DownloadProgress) => void
 type LogCallback = (message: string) => void
 
-// On Windows, try yt-dlp.exe first, fall back to yt-dlp
-const YT_DLP = process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'
+const BINARY_NAME = process.platform === 'win32' ? 'yt-dlp.exe'
+                  : process.platform === 'darwin' ? 'yt-dlp_macos'
+                  : 'yt-dlp'
+
+function resolveYtDlp(): string {
+  // In packaged Electron, process.resourcesPath is the extraResources destination.
+  // In dev/CLI, fall back to the local resources/ folder next to the project root.
+  const candidates = [
+    process.resourcesPath && path.join(process.resourcesPath, BINARY_NAME),
+    path.resolve('resources', BINARY_NAME),
+  ].filter(Boolean) as string[]
+
+  return candidates.find(existsSync) ?? BINARY_NAME  // last resort: PATH
+}
+
+const YT_DLP = resolveYtDlp()
 
 export async function getMediaInfo(url: string): Promise<[MediaInfo | null, string | null]> {
   return new Promise((resolve) => {

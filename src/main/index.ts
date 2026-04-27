@@ -8,6 +8,7 @@ function createWindow(): void {
     height: 820,
     minWidth: 640,
     minHeight: 600,
+    frame: false,
     autoHideMenuBar: true,
     title: 'Media Downloader',
     webPreferences: {
@@ -16,6 +17,9 @@ function createWindow(): void {
       nodeIntegration: false,
     },
   })
+
+  win.on('maximize', () => win.webContents.send('window:maximize-changed', true))
+  win.on('unmaximize', () => win.webContents.send('window:maximize-changed', false))
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)

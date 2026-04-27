@@ -40,12 +40,16 @@ export default function App() {
   const [transcript, setTranscript] = useState<TranscriptData | null>(null)
   const [showTranscript, setShowTranscript] = useState(false)
 
+  const [isMaximized, setIsMaximized] = useState(false)
+
   const logsRef = useRef<HTMLDivElement>(null)
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Register IPC listeners once on mount
   useEffect(() => {
     const api = window.electronAPI
+    api.isMaximized().then(setIsMaximized)
+    api.onMaximizeChanged(setIsMaximized)
 
     api.onProgress((d: ProgressData) => {
       setProgress(d.progress)
@@ -148,9 +152,22 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Media Downloader</h1>
-        <p>Download audio and video from YouTube</p>
+      <header className="titlebar">
+        <span className="titlebar-title">Media Downloader</span>
+        <div className="titlebar-controls">
+          <button className="wc-btn" onClick={() => window.electronAPI.minimize()}>
+            <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+          </button>
+          <button className="wc-btn" onClick={() => window.electronAPI.maximize()}>
+            {isMaximized
+              ? <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><rect x="2" y="0" width="8" height="8"/><rect x="0" y="2" width="8" height="8" fill="#0078d4"/><rect x="0" y="2" width="8" height="8"/></svg>
+              : <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1"><rect x="0" y="0" width="10" height="10"/></svg>
+            }
+          </button>
+          <button className="wc-btn wc-close" onClick={() => window.electronAPI.close()}>
+            <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          </button>
+        </div>
       </header>
 
       <div className="content">

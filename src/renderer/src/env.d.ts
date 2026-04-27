@@ -49,6 +49,11 @@ declare global {
       onComplete: (cb: (data: CompleteData) => void) => void
       onLog: (cb: (msg: string) => void) => void
       removeAllListeners: (channel: string) => void
+      minimize: () => Promise<void>
+      maximize: () => Promise<void>
+      close: () => Promise<void>
+      isMaximized: () => Promise<boolean>
+      onMaximizeChanged: (cb: (maximized: boolean) => void) => void
     }
   }
 }

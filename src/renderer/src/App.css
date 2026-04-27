@@ -19,23 +19,47 @@ body {
   min-height: 100vh;
 }
 
-.app-header {
+/* ── Frameless title bar ──────────────────────────────── */
+.titlebar {
   background: #0078d4;
   color: #fff;
-  padding: 18px 24px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  -webkit-app-region: drag;
+  user-select: none;
   flex-shrink: 0;
+  padding-left: 12px;
 }
 
-.app-header h1 {
-  font-size: 18px;
+.titlebar-title {
+  font-size: 13px;
   font-weight: 600;
 }
 
-.app-header p {
-  font-size: 12px;
-  opacity: 0.85;
-  margin-top: 2px;
+.titlebar-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+  height: 100%;
 }
+
+.wc-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 46px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  padding: 0;
+}
+
+.wc-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.wc-close:hover { background: #e81123; }
 
 .content {
   padding: 14px 16px;

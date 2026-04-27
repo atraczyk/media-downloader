@@ -1,131 +1,119 @@
 # Media Downloader
 
-A modern GUI application for downloading audio and video from YouTube videos. Supports MP3 audio conversion and various video quality options.
+Download audio (MP3) and video from YouTube — desktop GUI and CLI in one package, built with TypeScript + Electron + React.
 
 ## Features
 
-- 🎵 Download audio from YouTube videos (MP3)
-- 🎬 Download videos in various qualities
-- 🎨 Modern WebView interface with responsive design
-- 📁 Easy destination folder selection
-- 📊 Real-time progress tracking
-- 🔄 Background download processing
-- ✅ Automatic MP3 conversion
-- 🎛️ Quality selection options
-- 🛡️ Error handling and validation
+- Download audio as MP3 at 128/192/256/320 kbps
+- Download video (best, 1080p, 720p, 480p, 360p)
+- Real-time progress bar and log output
+- Optional transcript download (timestamped .txt)
+- URL validation with title preview before downloading
+- Standalone CLI sharing the same core logic
 
 ## Requirements
 
-- Python 3.7 or higher
-- FFmpeg (for audio conversion)
+- **Node.js** 18+
+- **yt-dlp** — must be on `PATH` (or place `yt-dlp.exe` / `yt-dlp` beside the app)
+- **FFmpeg** — required for MP3 conversion and video merging, must be on `PATH`
 
-## Installation
+### Installing yt-dlp
 
-1. **Install Python dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Install FFmpeg:**
-   - **Windows:** Download from [FFmpeg website](https://ffmpeg.org/download.html) and add to PATH
-   - **macOS:** `brew install ffmpeg`
-   - **Linux:** `sudo apt install ffmpeg` (Ubuntu/Debian) or `sudo yum install ffmpeg` (CentOS/RHEL)
-
-## Usage
-
-### Running the Python Script
 ```bash
-python main.py
+# Windows (winget)
+winget install yt-dlp
+
+# macOS
+brew install yt-dlp
+
+# Linux
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### Creating a Self-Contained Executable
+### Installing FFmpeg
 
-**Single command to build:**
 ```bash
-python build.py
+# Windows (winget)
+winget install ffmpeg
+
+# macOS
+brew install ffmpeg
+
+# Linux (Ubuntu/Debian)
+sudo apt install ffmpeg
 ```
 
-**Find your executable:**
-- Location: `dist/Media_Downloader.exe`
-- Double-click to run
+## Development
 
-## How to Use
+```bash
+npm install
+npm run dev       # Electron app with hot reload
+```
 
-1. **Enter Video URL:** Paste a YouTube video URL in the input field
-2. **Choose Download Type:** Select Audio (MP3) or Video
-3. **Set Quality:** Choose audio quality (128-320 kbps) or video quality (720p-4K)
-4. **Select Destination:** Click "Browse" to choose where to save the file
-5. **Download:** Click "Download" to start the process
-6. **Monitor Progress:** Watch the status area for download progress
-7. **Complete:** Get notified when the download finishes
+## Build
 
-## Supported Platforms
+```bash
+npm run build     # Compile to out/
+npm run package   # Build distributable installer (dist/)
+```
 
-- ✅ Windows (with executable)
-- ✅ macOS
-- ✅ Linux
+Outputs:
+- **Windows** — `dist/Media Downloader Setup *.exe` (NSIS)
+- **macOS** — `dist/Media Downloader-*.dmg`
+- **Linux** — `dist/Media Downloader-*.AppImage`
+
+## CLI
+
+```bash
+# Dev (tsx, no build needed)
+npm run cli -- download "https://www.youtube.com/watch?v=…"
+
+# Options
+npm run cli -- download <url> \
+  -o ./my-downloads \   # output directory (default: downloads/)
+  -t audio \            # audio | video  (default: audio)
+  -q 320 \              # kbps for audio, or 720p/1080p for video (default: 192)
+  --transcript          # also save transcript .txt
+
+# After build, call directly
+node out/cli/index.js download <url> [options]
+```
+
+## Project Structure
+
+```
+src/
+  core/
+    types.ts          # shared enums and interfaces
+    downloader.ts     # yt-dlp subprocess wrapper
+    transcript.ts     # youtube-transcript fetcher
+    file-manager.ts   # sanitize filenames, save files
+  main/
+    index.ts          # Electron main process, BrowserWindow
+    ipc-handlers.ts   # IPC bridge (validate, browse, start, status)
+  preload/
+    index.ts          # contextBridge → window.electronAPI
+  renderer/
+    index.html
+    src/
+      main.tsx
+      App.tsx         # single-page UI
+      App.css
+      env.d.ts        # window.electronAPI type declarations
+  cli/
+    index.ts          # commander CLI entry point
+package.json
+electron.vite.config.ts
+tsconfig.json / tsconfig.node.json / tsconfig.web.json
+```
 
 ## Troubleshooting
 
-### Common Issues
+**`yt-dlp` not found** — ensure it is installed and on `PATH`. Restart your terminal after installation.
 
-1. **FFmpeg not found:**
-   - Ensure FFmpeg is installed and in your system PATH
-   - For Windows, restart your terminal after adding FFmpeg to PATH
+**FFmpeg not found** — same as above. Required for `-x`/`--audio-format mp3` and `--merge-output-format`.
 
-2. **Download fails:**
-   - Check your internet connection
-   - Verify the video URL is valid and accessible
-   - Some videos may have download restrictions
+**Transcript unavailable** — not all videos have auto-generated or manual captions. The app will report this without failing the download.
 
-3. **Executable not working:**
-   - Ensure all dependencies are installed: `pip install -r requirements.txt`
-   - Try running the Python script directly first: `python main.py`
-
-### Build Issues
-
-If the executable build fails:
-
-1. **Clean and retry:**
-   ```bash
-   # Remove build artifacts
-   rmdir /s build dist
-   del Media_Downloader.spec
-
-   # Reinstall PyInstaller
-   pip uninstall pyinstaller
-   pip install pyinstaller
-
-   # Try building again
-   python build.py
-   ```
-
-2. **Manual PyInstaller command:**
-   ```bash
-   pyinstaller --onefile --windowed --name=Media_Downloader main.py
-   ```
-
-## File Structure
-
-```
-mp3_dl/
-├── main.py              # Main application
-├── build.py             # Build script for executable
-├── pyproject.toml       # Project configuration
-├── requirements.txt     # Python dependencies
-├── README.md           # This file
-└── dist/               # Generated executable (after build)
-    └── Media_Downloader.exe
-```
-
-## License
-
-This project is open source. Feel free to modify and distribute.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+**Video download produces `.webm`** — this is expected; yt-dlp merges the best audio+video streams into WebM by default.

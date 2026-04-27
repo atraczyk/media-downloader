@@ -4,10 +4,10 @@ import { setupIpcHandlers } from './ipc-handlers.js'
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 960,
-    height: 820,
-    minWidth: 640,
-    minHeight: 600,
+    width: 680,
+    height: 780,
+    resizable: false,
+    maximizable: false,
     frame: false,
     autoHideMenuBar: true,
     title: 'Media Downloader',

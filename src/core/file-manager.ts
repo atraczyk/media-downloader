@@ -7,9 +7,8 @@ export function sanitizeFilename(name: string): string {
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
       .replace(/[\u{10000}-\u{10FFFF}]/gu, '')
       .replace(/[^\w\s\-.,()[\]]/gu, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/^\.+|\.+$/g, '')
+      .replace(/\s+/g, '_')
+      .replace(/^[_.\-]+|[_.\-]+$/g, '')
       .slice(0, 200) || 'download'
   )
 }

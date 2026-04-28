@@ -175,6 +175,7 @@ function cleanError(raw: string): string {
   if (/HTTP Error 404/i.test(s))                    return 'Not found (404)'
   if (/no video formats/i.test(s))                  return 'No formats available'
   if (/unable to download|download failed/i.test(s)) return 'Download failed'
+  if (/is not a valid url/i.test(s))                return 'Invalid URL'
   // strip [extractor] VIDEO_ID: prefix
   return s.replace(/^\[[\w.:]+\]\s*[\w-]+:\s*/, '').split('\n')[0].trim()
 }

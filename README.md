@@ -14,22 +14,20 @@ Download audio (MP3) and video from YouTube — desktop GUI and CLI in one packa
 ## Requirements
 
 - **Node.js** 18+
-- **yt-dlp** — must be on `PATH` (or place `yt-dlp.exe` / `yt-dlp` beside the app)
 - **FFmpeg** — required for MP3 conversion and video merging, must be on `PATH`
 
-### Installing yt-dlp
+### yt-dlp binary (vendored in repo)
 
 ```bash
-# Windows (winget)
-winget install yt-dlp
-
-# macOS
-brew install yt-dlp
-
-# Linux
-sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-sudo chmod a+rx /usr/local/bin/yt-dlp
+npm run update-ytdlp
 ```
+
+This script downloads the latest `yt-dlp` binary for the current platform into `resources/`, verifies checksum, and updates:
+- `resources/yt-dlp` or `resources/yt-dlp.exe` or `resources/yt-dlp_macos`
+- `resources/SHA2-256SUMS`
+- `resources/yt-dlp-version`
+
+Commit those updated files when bumping `yt-dlp`.
 
 ### Installing FFmpeg
 
@@ -84,6 +82,25 @@ Outputs:
 - **Windows** — `dist/Media Downloader Setup *.exe` (NSIS)
 - **macOS** — `dist/Media Downloader-*.dmg`
 - **Linux** — `dist/Media Downloader-*.AppImage`
+
+## Automation
+
+GitHub Actions workflows:
+- **CI** (`.github/workflows/ci.yml`)
+  - Runs on pushes to `main` and pull requests
+  - Executes unit tests, BDD tests, and build
+- **Release** (`.github/workflows/release.yml`)
+  - Runs on tag pushes matching `v*` or manual dispatch
+  - Builds Windows/macOS/Linux distributables and publishes a GitHub release
+
+Release tags should use `v` prefix (example: `v2.1.0`).
+
+## Contributing
+
+- Default branch is `main`.
+- `main` is protected: PR review + CI are required for normal contributors.
+- Keep changes small and focused.
+- For behavior changes, update `.feature` scenarios first and follow the test workflow in **Testing (SDD/TDD)**.
 
 ## CLI
 

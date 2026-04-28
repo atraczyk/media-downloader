@@ -2,22 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 
 type DownloadType = 'audio' | 'video'
 
-interface ProgressData {
-  status: string
-  progress: number
-  message: string
-}
-
-interface TranscriptData {
-  text?: string
-  error?: string
-}
-
-interface CompleteData {
-  success: boolean
-  message: string
-  filename?: string
-}
+interface ProgressData { status: string; progress: number; message: string }
+interface TranscriptData { text?: string; error?: string }
+interface CompleteData { success: boolean; message: string; filename?: string }
 
 export default function App() {
   const [url, setUrl] = useState('')
@@ -45,7 +32,6 @@ export default function App() {
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const urlSeq = useRef(0)
 
-  // Register IPC listeners once on mount
   useEffect(() => {
     const api = window.electronAPI
 
@@ -74,7 +60,6 @@ export default function App() {
     }
   }, [])
 
-  // Auto-scroll log box
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight
   }, [logs])
@@ -99,13 +84,8 @@ export default function App() {
     try {
       const res = await window.electronAPI.validateUrl(val)
       if (seq !== urlSeq.current) return
-      if (res.valid) {
-        setUrlTitle(res.title ?? '')
-        setUrlError('')
-      } else {
-        setUrlError(res.error ?? 'Invalid URL')
-        setUrlTitle('')
-      }
+      if (res.valid) { setUrlTitle(res.title ?? ''); setUrlError('') }
+      else { setUrlError(res.error ?? 'Invalid URL'); setUrlTitle('') }
     } catch {
       if (seq !== urlSeq.current) return
       setUrlError('Validation failed')
@@ -145,11 +125,10 @@ export default function App() {
     }
   }
 
-  const btnLabel = dlType === 'audio' ? '↓ Download MP3' : '↓ Download Video'
+  const showProgress = downloading || progressStatus === 'completed' || progressStatus === 'failed'
 
-  const showProgress = downloading
-    || progressStatus === 'completed'
-    || progressStatus === 'failed'
+  const urlStatusClass = urlPending ? 'hint-wait' : urlTitle ? 'hint-ok' : urlError ? 'hint-err' : ''
+  const urlStatusText  = urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ''
 
   return (
     <div className="app">
@@ -160,19 +139,21 @@ export default function App() {
             <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
           </button>
           <button className="wc-btn wc-close" onClick={() => window.electronAPI.close()}>
-            <svg width="10" height="10" viewBox="0 0 10 10"><line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
       </header>
 
       <div className="content">
+
         {/* URL */}
-        <div className="card">
-          <div className="card-header">
-            <p className="card-label">URL</p>
-            <span className={`url-status ${urlPending ? 'hint-wait' : urlTitle ? 'hint-ok' : urlError ? 'hint-err' : ''}`}>
-              {urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ''}
-            </span>
+        <div className="section">
+          <div className="section-header">
+            <span className="section-label">URL</span>
+            <span className={`url-status ${urlStatusClass}`}>{urlStatusText}</span>
           </div>
           <input
             className="input"
@@ -185,73 +166,56 @@ export default function App() {
           />
         </div>
 
-        {/* Options */}
-        <div className="card">
-          <p className="card-label">Options</p>
-
-          <div className="radio-group">
-            {(['audio', 'video'] as DownloadType[]).map(t => (
-              <label key={t} className="radio-item">
-                <input
-                  type="radio"
-                  name="dlType"
-                  value={t}
-                  checked={dlType === t}
-                  onChange={() => setDlType(t)}
+        {/* Format + Options */}
+        <div className="section">
+          <span className="section-label">Format</span>
+          <div className="format-row" style={{ marginTop: 8 }}>
+            <div className="seg-control">
+              {(['audio', 'video'] as DownloadType[]).map(t => (
+                <button
+                  key={t}
+                  className={`seg-btn ${dlType === t ? 'active' : ''}`}
+                  onClick={() => setDlType(t)}
                   disabled={downloading}
-                />
-                {t === 'audio' ? 'Audio (MP3)' : 'Video'}
-              </label>
-            ))}
+                >
+                  {t === 'audio' ? 'Audio · MP3' : 'Video'}
+                </button>
+              ))}
+            </div>
+            <div className="quality-group">
+              <span className="quality-label">Quality</span>
+              <select
+                className="select"
+                value={dlType === 'audio' ? audioQuality : videoQuality}
+                onChange={e => dlType === 'audio' ? setAudioQuality(e.target.value) : setVideoQuality(e.target.value)}
+                disabled={downloading}
+              >
+                {dlType === 'audio'
+                  ? ['128', '192', '256', '320'].map(q => <option key={q} value={q}>{q} kbps</option>)
+                  : [['best', 'Best'], ['1080p', '1080p'], ['720p', '720p'], ['480p', '480p'], ['360p', '360p']].map(([v, l]) => (
+                      <option key={v} value={v}>{l}</option>
+                    ))
+                }
+              </select>
+            </div>
           </div>
-
-          {dlType === 'audio' && (
-            <div className="option-row">
-              <span style={{ color: '#555', minWidth: 60 }}>Quality</span>
-              <select
-                className="select"
-                value={audioQuality}
-                onChange={e => setAudioQuality(e.target.value)}
-                disabled={downloading}
-              >
-                {['128', '192', '256', '320'].map(q => (
-                  <option key={q} value={q}>{q} kbps</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {dlType === 'video' && (
-            <div className="option-row">
-              <span style={{ color: '#555', minWidth: 60 }}>Quality</span>
-              <select
-                className="select"
-                value={videoQuality}
-                onChange={e => setVideoQuality(e.target.value)}
-                disabled={downloading}
-              >
-                {[['best', 'Best available'], ['1080p', '1080p'], ['720p', '720p'], ['480p', '480p'], ['360p', '360p']].map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <label className="checkbox-item" style={{ marginTop: 4 }}>
+          <label className="toggle-row">
             <input
               type="checkbox"
               checked={transcriptOn}
               onChange={e => setTranscriptOn(e.target.checked)}
               disabled={downloading}
             />
-            Download transcript (if available)
+            Download transcript
           </label>
         </div>
 
         {/* Destination */}
-        <div className="card">
-          <p className="card-label">Destination</p>
-          <div className="row">
+        <div className="section">
+          <div className="section-header">
+            <span className="section-label">Destination</span>
+          </div>
+          <div className="dest-row">
             <input
               className="input"
               type="text"
@@ -266,21 +230,17 @@ export default function App() {
         </div>
 
         {/* Download + Progress */}
-        <div className="card">
+        <div className="section">
           <button
             className={`btn btn-full ${downloading ? 'btn-cancel' : 'btn-primary'}`}
             onClick={downloading ? () => window.electronAPI.cancelDownload() : startDownload}
             disabled={!downloading && !url.trim()}
           >
-            {downloading ? '✕ Cancel' : btnLabel}
+            {downloading ? '✕  Cancel' : dlType === 'audio' ? '↓  Download MP3' : '↓  Download Video'}
           </button>
-
           <div className="progress-wrap">
             <div className={`progress-bar ${showProgress ? '' : 'progress-bar--hidden'}`}>
-              <div
-                className="progress-fill"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
+              <div className="progress-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
             </div>
             <div className="progress-footer">
               <p className={`progress-msg s-${progressStatus}`}>{showProgress ? progressMsg : ''}</p>
@@ -295,37 +255,36 @@ export default function App() {
 
         {/* Transcript */}
         {transcript && (
-          <div className="card">
-            <div className="card-header">
-              <p className="card-label">Transcript</p>
+          <div className="section">
+            <div className="section-header">
+              <span className="section-label">Transcript</span>
               {transcript.text && (
                 <button className="btn btn-ghost" onClick={() => setShowTranscript(v => !v)}>
                   {showTranscript ? 'Hide' : 'Show'}
                 </button>
               )}
             </div>
-            {transcript.error && (
-              <p className="hint hint-err">{transcript.error}</p>
-            )}
+            {transcript.error && <p className="hint hint-err">{transcript.error}</p>}
             {showTranscript && transcript.text && (
               <div className="transcript-box">{transcript.text}</div>
             )}
           </div>
         )}
 
-        {/* Logs */}
-        <div className="card card-log">
-          <div className="card-header">
-            <p className="card-label">Log</p>
+        {/* Log */}
+        <div className="section section-log">
+          <div className="section-header">
+            <span className="section-label">Log</span>
             <button className="btn btn-ghost" onClick={() => setLogs([])}>Clear</button>
           </div>
           <div className="log-box" ref={logsRef}>
             {logs.length === 0
-              ? <div className="log-line" style={{ color: '#666' }}>Ready.</div>
+              ? <div className="log-line log-line--ready">ready.</div>
               : logs.map((l, i) => <div key={i} className="log-line">{l}</div>)
             }
           </div>
         </div>
+
       </div>
     </div>
   )

@@ -277,6 +277,10 @@ input[type='checkbox'] {
   overflow: hidden;
 }
 
+.progress-bar--hidden {
+  background: transparent;
+}
+
 .progress-fill {
   height: 100%;
   background: #0078d4;

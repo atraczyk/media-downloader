@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "out/cli",
+    "rootDir": "src",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/cli/**/*",
+    "src/core/**/*"
+  ],
+  "exclude": [
+    "src/**/*.test.ts"
+  ]
+}

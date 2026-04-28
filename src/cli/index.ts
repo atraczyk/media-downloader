@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 import { Command } from 'commander'
 import path from 'path'
 import { getMediaInfo, downloadMedia } from '../core/downloader.js'
@@ -9,7 +9,7 @@ import { DownloadType } from '../core/types.js'
 const program = new Command()
 
 program
-  .name('mp3-dl')
+  .name('m-dl')
   .description('Download audio and video from YouTube')
   .version('2.0.0')
 

@@ -104,19 +104,36 @@ Release tags should use `v` prefix (example: `v2.1.0`).
 
 ## CLI
 
-```bash
-# Dev (tsx, no build needed)
-npm run cli -- download "https://www.youtube.com/watch?v=…"
+### Install globally
 
-# Options
-npm run cli -- download <url> \
+```bash
+npm run build:cli
+npm install -g .
+```
+
+Requires `yt-dlp` and `ffmpeg` on `PATH` (see [Requirements](#requirements)).
+
+```bash
+m-dl download "https://www.youtube.com/watch?v=…"
+
+m-dl download <url> \
   -o ./my-downloads \   # output directory (default: downloads/)
   -t audio \            # audio | video  (default: audio)
   -q 320 \              # kbps for audio, or 720p/1080p for video (default: 192)
   --transcript          # also save transcript .txt
+```
 
-# After build, call directly
-node out/cli/index.js download <url> [options]
+### Dev usage (no build needed)
+
+```bash
+npm run cli -- download "https://www.youtube.com/watch?v=…"
+```
+
+### Build the CLI
+
+```bash
+npm run build:cli          # compiles to out/cli/
+node out/cli/cli/index.js download <url> [options]
 ```
 
 ## Project Structure

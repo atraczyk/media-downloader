@@ -14,8 +14,9 @@ const BINARY_NAME = process.platform === 'win32' ? 'yt-dlp.exe'
 function resolveYtDlp(): string {
   // In packaged Electron, process.resourcesPath is the extraResources destination.
   // In dev/CLI, fall back to the local resources/ folder next to the project root.
+  const rp = (process as typeof process & { resourcesPath?: string }).resourcesPath
   const candidates = [
-    process.resourcesPath && path.join(process.resourcesPath, BINARY_NAME),
+    rp && path.join(rp, BINARY_NAME),
     path.resolve('resources', BINARY_NAME),
   ].filter(Boolean) as string[]
 
@@ -120,7 +121,7 @@ export async function downloadMedia(
     let detectedOutputPath: string | null = null
     activeProc = spawn(YT_DLP, args)
 
-    activeProc.stdout.on('data', (d: Buffer) => {
+    activeProc.stdout!.on('data', (d: Buffer) => {
       for (const line of d.toString().split('\n').filter(Boolean)) {
         onLog(line)
         const outputPath = parseOutputPath(line)
@@ -130,7 +131,7 @@ export async function downloadMedia(
       }
     })
 
-    activeProc.stderr.on('data', (d: Buffer) => {
+    activeProc.stderr!.on('data', (d: Buffer) => {
       const msg = d.toString().trim()
       if (msg) {
         errLines.push(msg)

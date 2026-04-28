@@ -1,8 +1,14 @@
 {
-  "name": "mp3-dl",
+  "name": "m-dl",
   "version": "2.0.0",
-  "description": "Download audio and video from YouTube",
+  "description": "Download audio and video from YouTube and more",
   "main": "out/main/index.js",
+  "bin": {
+    "m-dl": "./out/cli/cli/index.js"
+  },
+  "files": [
+    "out/cli"
+  ],
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
@@ -16,11 +22,13 @@
     "package:win": "npm run build && electron-builder --win nsis",
     "package:mac": "npm run build && electron-builder --mac dmg",
     "package:linux": "npm run build && electron-builder --linux AppImage",
+    "build:cli": "tsc -p tsconfig.cli.json",
+    "prepublishOnly": "npm run build:cli",
     "cli": "tsx src/cli/index.ts",
     "update-ytdlp": "node scripts/update-ytdlp.mjs"
   },
   "build": {
-    "appId": "com.mp3dl.app",
+    "appId": "com.mediadl.app",
     "productName": "Media Downloader",
     "directories": {
       "output": "dist"

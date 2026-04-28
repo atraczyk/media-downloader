@@ -77,6 +77,8 @@ export function setupIpcHandlers(): void {
 
   ipcMain.handle('download:get-status', () => ({ isDownloading }))
 
+  ipcMain.handle('path:resolve', (_, p: string) => path.resolve(p))
+
   ipcMain.handle('app:default-dest', () =>
     path.join(app.getPath('downloads'), 'media-downloader')
   )

@@ -131,6 +131,13 @@ export default function App() {
     if (res.success && res.path) setDestination(res.path)
   }
 
+  async function resolveDestination() {
+    const val = destination.trim()
+    if (!val) return
+    const abs = await window.electronAPI.resolvePath(val)
+    setDestination(abs)
+  }
+
   async function startDownload() {
     if (downloading || !url.trim()) return
     setDownloading(true)
@@ -256,6 +263,7 @@ export default function App() {
               type="text"
               value={destination}
               onChange={e => setDestination(e.target.value)}
+              onBlur={resolveDestination}
               disabled={downloading}
             />
             <button className="btn btn-secondary" onClick={browseFolder} disabled={downloading}>

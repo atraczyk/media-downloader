@@ -48,6 +48,7 @@ export async function getMediaInfo(url: string): Promise<[MediaInfo | null, stri
             duration: info.duration ? Math.floor(info.duration) : undefined,
             uploader: info.uploader || info.channel || undefined,
             sanitizedFilename: sanitizeFilename(info.title || 'download'),
+            isAudioOnly: !info.vcodec || info.vcodec === 'none',
           },
           null,
         ])

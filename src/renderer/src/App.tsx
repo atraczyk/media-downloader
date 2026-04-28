@@ -108,8 +108,14 @@ export default function App() {
     try {
       const res = await window.electronAPI.validateUrl(val)
       if (seq !== urlSeq.current) return
-      if (res.valid) { setUrlTitle(res.title ?? ''); setUrlError('') }
-      else { setUrlError(res.error ?? 'Invalid URL'); setUrlTitle('') }
+      if (res.valid) {
+        setUrlTitle(res.title ?? '')
+        setUrlError('')
+        if (res.isAudioOnly !== undefined) setDlType(res.isAudioOnly ? 'audio' : 'video')
+      } else {
+        setUrlError(res.error ?? 'Invalid URL')
+        setUrlTitle('')
+      }
     } catch {
       if (seq !== urlSeq.current) return
       setUrlError('Validation failed')

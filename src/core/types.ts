@@ -32,6 +32,7 @@ export interface MediaInfo {
   duration?: number
   uploader?: string
   sanitizedFilename: string
+  isAudioOnly?: boolean
 }
 
 export interface TranscriptResult {

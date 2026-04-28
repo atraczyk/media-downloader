@@ -15,7 +15,7 @@ export function setupIpcHandlers(): void {
   ipcMain.handle('download:validate-url', async (_, url: string) => {
     const [info, error] = await getMediaInfo(url)
     if (error || !info) return { valid: false, error: error ?? 'Unknown error' }
-    return { valid: true, title: info.title, duration: info.duration, uploader: info.uploader }
+    return { valid: true, title: info.title, duration: info.duration, uploader: info.uploader, isAudioOnly: info.isAudioOnly }
   })
 
   ipcMain.handle('download:browse-folder', async (event) => {

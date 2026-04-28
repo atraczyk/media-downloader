@@ -160,7 +160,7 @@ export default function App() {
   const showProgress = downloading || progressStatus === 'completed' || progressStatus === 'failed'
 
   const urlStatusClass = urlPending ? 'hint-wait' : urlTitle ? 'hint-ok' : urlError ? 'hint-err' : ''
-  const urlStatusText  = urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ''
+  const urlStatusText  = urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ' '
 
   return (
     <div className="app">

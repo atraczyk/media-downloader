@@ -117,11 +117,14 @@ export async function downloadMedia(
 
   return new Promise((resolve) => {
     const errLines: string[] = []
+    let detectedOutputPath: string | null = null
     activeProc = spawn(YT_DLP, args)
 
     activeProc.stdout.on('data', (d: Buffer) => {
       for (const line of d.toString().split('\n').filter(Boolean)) {
         onLog(line)
+        const outputPath = parseOutputPath(line)
+        if (outputPath) detectedOutputPath = outputPath
         const p = parseProgress(line)
         if (p) onProgress(p)
       }
@@ -148,8 +151,11 @@ export async function downloadMedia(
         return
       }
       if (code === 0) {
-        const ext = isAudio ? 'mp3' : 'mkv'
-        const outFile = path.join(request.destination, `${filename}.${ext}`)
+        const fallbackExt = isAudio ? 'mp3' : 'mkv'
+        const fallbackPath = path.join(request.destination, `${filename}.${fallbackExt}`)
+        const outFile = detectedOutputPath && existsSync(detectedOutputPath)
+          ? detectedOutputPath
+          : fallbackPath
         onProgress({ status: DownloadStatus.COMPLETED, progress: 1.0, message: 'Done' })
         onLog('Done!')
         resolve([true, outFile])
@@ -160,6 +166,22 @@ export async function downloadMedia(
       }
     })
   })
+}
+
+function parseOutputPath(line: string): string | null {
+  const destinationMatch = line.match(/\[(?:download|ExtractAudio)\]\s+Destination:\s+(.+)$/)
+  if (destinationMatch?.[1]) return destinationMatch[1].trim()
+
+  const mergeMatch = line.match(/\[Merger\].*?\s+into\s+(.+)$/)
+  if (!mergeMatch?.[1]) return null
+  const merged = mergeMatch[1].trim()
+  if (
+    (merged.startsWith('"') && merged.endsWith('"')) ||
+    (merged.startsWith("'") && merged.endsWith("'"))
+  ) {
+    return merged.slice(1, -1)
+  }
+  return merged
 }
 
 function cleanError(raw: string): string {

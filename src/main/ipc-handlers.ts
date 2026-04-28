@@ -1,5 +1,6 @@
 import { ipcMain, dialog, BrowserWindow, shell, app } from 'electron'
 import path from 'path'
+import { existsSync } from 'fs'
 import { getMediaInfo, downloadMedia, cancelDownload } from '../core/downloader.js'
 import { fetchTranscript } from '../core/transcript.js'
 import { saveTranscript, ensureDirectory } from '../core/file-manager.js'
@@ -88,8 +89,16 @@ export function setupIpcHandlers(): void {
     cancelDownload()
   })
 
-  ipcMain.handle('shell:show-item', (_, filePath: string) => {
-    shell.showItemInFolder(filePath)
+  ipcMain.handle('shell:show-item', async (_, filePath: string) => {
+    const absolutePath = path.resolve(filePath)
+    if (existsSync(absolutePath)) {
+      shell.showItemInFolder(absolutePath)
+      return
+    }
+    const dir = path.dirname(absolutePath)
+    if (existsSync(dir)) {
+      await shell.openPath(dir)
+    }
   })
 
   ipcMain.handle('window:minimize', (event) => {

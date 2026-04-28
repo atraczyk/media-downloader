@@ -112,6 +112,7 @@ body {
   flex-direction: column;
   padding: 10px 12px;
   gap: 6px;
+  overflow: hidden;
 }
 
 /* ── Section ──────────────────────────────────────────── */
@@ -405,3 +406,8 @@ body {
 .log-line { color: var(--text-muted); white-space: pre-wrap; word-break: break-all; }
 .log-line:nth-child(odd) { color: #5c5548; }
 .log-line--ready { color: var(--text-dim); font-style: italic; }
+
+.log-box::-webkit-scrollbar { width: 4px; }
+.log-box::-webkit-scrollbar-track { background: transparent; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+.log-box::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }

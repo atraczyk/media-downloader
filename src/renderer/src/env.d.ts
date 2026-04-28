@@ -5,6 +5,7 @@ interface ValidateResult {
   title?: string
   duration?: number
   uploader?: string
+  isAudioOnly?: boolean
   error?: string
 }
 
@@ -49,6 +50,9 @@ declare global {
       onComplete: (cb: (data: CompleteData) => void) => void
       onLog: (cb: (msg: string) => void) => void
       removeAllListeners: (channel: string) => void
+      cancelDownload: () => Promise<void>
+      getDefaultDest: () => Promise<string>
+      showItem: (filePath: string) => Promise<void>
       minimize: () => Promise<void>
       maximize: () => Promise<void>
       close: () => Promise<void>

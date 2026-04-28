@@ -282,7 +282,7 @@ export default function App() {
                 {showProgress ? progressMsg : 'Ready'}
               </p>
               {lastFile && (
-                <button className="btn btn-ghost" onClick={() => window.electronAPI.showItem(lastFile)}>
+                <button className="btn btn-ghost" onClick={() => window.electronAPI.showItem(lastFile!)}>
                   Show in folder
                 </button>
               )}

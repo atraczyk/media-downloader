@@ -31,6 +31,7 @@ export default function App() {
   const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(
     () => (localStorage.getItem('theme') as 'dark' | 'light' | 'system') || 'dark'
   )
+  const [appVersion, setAppVersion] = useState('')
 
   const logsRef = useRef<HTMLDivElement>(null)
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -79,6 +80,7 @@ export default function App() {
     api.onLog((msg: string) => appendLog(msg))
 
     window.electronAPI.getDefaultDest().then(setDestination)
+    window.electronAPI.getAppVersion().then(setAppVersion).catch(() => setAppVersion(''))
 
     return () => {
       ;['download:progress', 'download:transcript', 'download:complete', 'download:log']
@@ -89,6 +91,11 @@ export default function App() {
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight
   }, [logs])
+
+  useEffect(() => {
+    const title = appVersion ? `Media Downloader v${appVersion}` : 'Media Downloader'
+    document.title = title
+  }, [appVersion])
 
   function appendLog(msg: string) {
     const ts = new Date().toLocaleTimeString()
@@ -168,11 +175,12 @@ export default function App() {
 
   const urlStatusClass = urlPending ? 'hint-wait' : urlTitle ? 'hint-ok' : urlError ? 'hint-err' : ''
   const urlStatusText  = urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ' '
+  const appTitle = appVersion ? `Media Downloader v${appVersion}` : 'Media Downloader'
 
   return (
     <div className="app">
       <header className="titlebar">
-        <span className="titlebar-title">Media Downloader</span>
+        <span className="titlebar-title">{appTitle}</span>
         <div className="titlebar-controls">
           <button className="wc-btn" onClick={cycleTheme} title={`Theme: ${theme}`} style={{ fontSize: 14 }}>
             {theme === 'dark' ? '●' : theme === 'light' ? '○' : '◐'}

@@ -3,6 +3,7 @@ import path from 'path'
 import { setupIpcHandlers } from './ipc-handlers.js'
 
 function createWindow(): void {
+  const appTitle = `Media Downloader v${app.getVersion()}`
   const win = new BrowserWindow({
     width: 680,
     height: 780,
@@ -10,7 +11,7 @@ function createWindow(): void {
     maximizable: false,
     frame: false,
     autoHideMenuBar: true,
-    title: 'Media Downloader',
+    title: appTitle,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,

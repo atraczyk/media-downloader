@@ -52,6 +52,7 @@ declare global {
       removeAllListeners: (channel: string) => void
       cancelDownload: () => Promise<void>
       getDefaultDest: () => Promise<string>
+      getAppVersion: () => Promise<string>
       resolvePath: (path: string) => Promise<string>
       showItem: (filePath: string) => Promise<void>
       minimize: () => Promise<void>

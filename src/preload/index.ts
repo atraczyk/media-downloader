@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resolvePath: (p: string) => ipcRenderer.invoke('path:resolve', p),
 
   getDefaultDest: () => ipcRenderer.invoke('app:default-dest'),
+  getAppVersion: () => ipcRenderer.invoke('app:get-version'),
 
   showItem: (filePath: string) => ipcRenderer.invoke('shell:show-item', filePath),
 

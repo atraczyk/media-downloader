@@ -41,16 +41,28 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            package_script: package:win
+            build_command: npm run build && npx electron-builder --win nsis --publish never
+            artifact_paths: |
+              dist/*.exe
+              dist/*.blockmap
+              dist/latest*.yml
           - os: macos-latest
-            package_script: package:mac
+            build_command: npm run build && npx electron-builder --mac dmg --publish never
+            artifact_paths: |
+              dist/*.dmg
+              dist/*.zip
+              dist/*.blockmap
+              dist/latest*.yml
           - os: ubuntu-latest
-            package_script: package:linux
+            build_command: npm run build && npx electron-builder --linux AppImage --publish never
+            artifact_paths: |
+              dist/*.AppImage
+              dist/*.blockmap
+              dist/latest*.yml
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout
@@ -66,13 +78,13 @@ jobs:
         run: npm ci
 
       - name: Build distributable
-        run: npm run ${{ matrix.package_script }}
+        run: ${{ matrix.build_command }}
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.os }}
-          path: dist/*
+          path: ${{ matrix.artifact_paths }}
           if-no-files-found: error
 
   publish-release:
@@ -86,7 +98,15 @@ jobs:
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.resolve-version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          files: release-artifacts/**/*
+          files: |
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.AppImage
+            release-artifacts/**/*.zip
+            release-artifacts/**/*.blockmap
+            release-artifacts/**/latest*.yml

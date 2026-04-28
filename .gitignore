@@ -21,7 +21,12 @@ __pycache__/
 downloads/
 
 # Vendored binaries (fetched by scripts/update-ytdlp.mjs)
-resources/
+resources/*
+!resources/yt-dlp
+!resources/yt-dlp.exe
+!resources/yt-dlp_macos
+!resources/SHA2-256SUMS
+!resources/yt-dlp-version
 
 # working design documents
 .design-docs/

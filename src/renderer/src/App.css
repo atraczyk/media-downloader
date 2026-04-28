@@ -20,6 +20,30 @@
   --r:            5px;
 }
 
+[data-theme="light"] {
+  --bg:          #f4efe6;
+  --surface:     #fffcf7;
+  --surface-2:   #ede8de;
+  --border:      #ddd6c8;
+  --border-mid:  #c8bfb0;
+  --text:        #241c0e;
+  --text-muted:  #7a6a52;
+  --text-dim:    #bfb09a;
+  --accent:      #a86e18;
+  --accent-hi:   #be8020;
+  --accent-glow: rgba(168, 110, 24, 0.12);
+  --success:     #28673e;
+  --error:       #8e2820;
+  --pending:     #526070;
+}
+
+[data-theme="light"] .log-box {
+  background: #ede8de;
+}
+[data-theme="light"] .log-line { color: #8a7a62; }
+[data-theme="light"] .log-line:nth-child(odd) { color: #a89878; }
+[data-theme="light"] .log-line--ready { color: var(--text-dim); }
+
 body {
   font-family: var(--font-ui);
   background: var(--bg);

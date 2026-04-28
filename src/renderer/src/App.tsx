@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 
 type DownloadType = 'audio' | 'video'
 
@@ -28,9 +28,33 @@ export default function App() {
   const [transcript, setTranscript] = useState<TranscriptData | null>(null)
   const [showTranscript, setShowTranscript] = useState(false)
 
+  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(
+    () => (localStorage.getItem('theme') as 'dark' | 'light' | 'system') || 'dark'
+  )
+
   const logsRef = useRef<HTMLDivElement>(null)
   const urlTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const urlSeq = useRef(0)
+
+  useLayoutEffect(() => {
+    function apply(t: 'dark' | 'light' | 'system') {
+      const resolved = t === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : t
+      document.documentElement.setAttribute('data-theme', resolved)
+    }
+    apply(theme)
+    localStorage.setItem('theme', theme)
+    if (theme !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => apply('system')
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [theme])
+
+  function cycleTheme() {
+    setTheme(t => t === 'dark' ? 'light' : t === 'light' ? 'system' : 'dark')
+  }
 
   useEffect(() => {
     const api = window.electronAPI
@@ -135,6 +159,9 @@ export default function App() {
       <header className="titlebar">
         <span className="titlebar-title">Media Downloader</span>
         <div className="titlebar-controls">
+          <button className="wc-btn" onClick={cycleTheme} title={`Theme: ${theme}`} style={{ fontSize: 14 }}>
+            {theme === 'dark' ? '●' : theme === 'light' ? '○' : '◐'}
+          </button>
           <button className="wc-btn" onClick={() => window.electronAPI.minimize()}>
             <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
           </button>

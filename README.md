@@ -51,6 +51,25 @@ npm install
 npm run dev       # Electron app with hot reload
 ```
 
+## Testing (SDD/TDD)
+
+This repo uses:
+- **Cucumber-style Gherkin features** (`features/*.feature`)
+- **Playwright-BDD** to turn scenarios into Playwright tests
+- **Node unit tests** for lower-level logic
+
+```bash
+npx playwright install chromium   # one-time browser install
+npm run test:unit                 # fast unit tests
+npm run test:bdd                  # feature-level BDD tests
+```
+
+Feature-first workflow:
+1. Add or update a `.feature` scenario for behavior you want.
+2. Run `npm run test:bdd` and watch it fail (red).
+3. Implement app code + step definitions until tests pass (green).
+4. Refactor while keeping both unit and BDD tests green.
+
 ## Build
 
 ```bash

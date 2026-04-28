@@ -151,11 +151,12 @@ export async function downloadMedia(
         return
       }
       if (code === 0) {
-        const fallbackExt = isAudio ? 'mp3' : 'mkv'
-        const fallbackPath = path.join(request.destination, `${filename}.${fallbackExt}`)
-        const outFile = detectedOutputPath && existsSync(detectedOutputPath)
-          ? detectedOutputPath
-          : fallbackPath
+        const outFile = resolveOutputFilePath({
+          destination: request.destination,
+          filename,
+          isAudio,
+          detectedOutputPath,
+        })
         onProgress({ status: DownloadStatus.COMPLETED, progress: 1.0, message: 'Done' })
         onLog('Done!')
         resolve([true, outFile])
@@ -168,7 +169,7 @@ export async function downloadMedia(
   })
 }
 
-function parseOutputPath(line: string): string | null {
+export function parseOutputPath(line: string): string | null {
   const destinationMatch = line.match(/\[(?:download|ExtractAudio)\]\s+Destination:\s+(.+)$/)
   if (destinationMatch?.[1]) return destinationMatch[1].trim()
 
@@ -182,6 +183,22 @@ function parseOutputPath(line: string): string | null {
     return merged.slice(1, -1)
   }
   return merged
+}
+
+interface ResolveOutputFilePathArgs {
+  destination: string
+  filename: string
+  isAudio: boolean
+  detectedOutputPath: string | null
+}
+
+export function resolveOutputFilePath(
+  { destination, filename, isAudio, detectedOutputPath }: ResolveOutputFilePathArgs
+): string {
+  const fallbackExt = isAudio ? 'mp3' : 'mkv'
+  const fallbackPath = path.join(destination, `${filename}.${fallbackExt}`)
+  if (!detectedOutputPath) return fallbackPath
+  return existsSync(detectedOutputPath) ? detectedOutputPath : fallbackPath
 }
 
 function cleanError(raw: string): string {

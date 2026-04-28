@@ -266,11 +266,13 @@ export default function App() {
             {downloading ? '✕  Cancel' : dlType === 'audio' ? '↓  Download MP3' : '↓  Download Video'}
           </button>
           <div className="progress-wrap">
-            <div className={`progress-bar ${showProgress ? '' : 'progress-bar--hidden'}`}>
-              <div className="progress-fill" style={{ width: `${Math.round(progress * 100)}%` }} />
+            <div className={`progress-bar${showProgress ? '' : ' progress-bar--idle'}`}>
+              <div className="progress-fill" style={{ width: `${showProgress ? Math.round(progress * 100) : 0}%` }} />
             </div>
             <div className="progress-footer">
-              <p className={`progress-msg s-${progressStatus}`}>{showProgress ? progressMsg : ''}</p>
+              <p className={`progress-msg${showProgress ? ` s-${progressStatus}` : ' s-idle'}`}>
+                {showProgress ? progressMsg : 'Ready'}
+              </p>
               {lastFile && (
                 <button className="btn btn-ghost" onClick={() => window.electronAPI.showItem(lastFile)}>
                   Show in folder

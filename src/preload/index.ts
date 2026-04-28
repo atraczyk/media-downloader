@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   cancelDownload: () => ipcRenderer.invoke('download:cancel'),
 
+  getDefaultDest: () => ipcRenderer.invoke('app:default-dest'),
+
   showItem: (filePath: string) => ipcRenderer.invoke('shell:show-item', filePath),
 
   minimize: () => ipcRenderer.invoke('window:minimize'),

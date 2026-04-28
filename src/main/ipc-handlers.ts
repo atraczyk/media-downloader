@@ -1,4 +1,4 @@
-import { ipcMain, dialog, BrowserWindow, shell } from 'electron'
+import { ipcMain, dialog, BrowserWindow, shell, app } from 'electron'
 import path from 'path'
 import { getMediaInfo, downloadMedia, cancelDownload } from '../core/downloader.js'
 import { fetchTranscript } from '../core/transcript.js'
@@ -76,6 +76,10 @@ export function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('download:get-status', () => ({ isDownloading }))
+
+  ipcMain.handle('app:default-dest', () =>
+    path.join(app.getPath('downloads'), 'media-downloader')
+  )
 
   ipcMain.handle('download:cancel', () => {
     cancelDownload()

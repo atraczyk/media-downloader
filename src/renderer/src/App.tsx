@@ -15,7 +15,7 @@ export default function App() {
   const [dlType, setDlType] = useState<DownloadType>('audio')
   const [audioQuality, setAudioQuality] = useState('192')
   const [videoQuality, setVideoQuality] = useState('best')
-  const [destination, setDestination] = useState('downloads')
+  const [destination, setDestination] = useState('')
   const [transcriptOn, setTranscriptOn] = useState(false)
 
   const [downloading, setDownloading] = useState(false)
@@ -77,6 +77,8 @@ export default function App() {
     })
 
     api.onLog((msg: string) => appendLog(msg))
+
+    window.electronAPI.getDefaultDest().then(setDestination)
 
     return () => {
       ;['download:progress', 'download:transcript', 'download:complete', 'download:log']

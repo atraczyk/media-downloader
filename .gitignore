@@ -22,3 +22,6 @@ downloads/
 
 # Vendored binaries (fetched by scripts/update-ytdlp.mjs)
 resources/
+
+# working design documents
+.design-docs/

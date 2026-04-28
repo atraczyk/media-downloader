@@ -79,9 +79,9 @@ npm run package:linux
 ```
 
 Outputs:
-- **Windows** — `dist/Media Downloader Setup *.exe` (NSIS)
-- **macOS** — `dist/Media Downloader-*.dmg`
-- **Linux** — `dist/Media Downloader-*.AppImage`
+- **Windows** — `dist/media-downloader-setup-*.exe` (NSIS)
+- **macOS** — `dist/media-downloader-*.dmg`
+- **Linux** — `dist/media-downloader-*.AppImage`
 
 ## Automation
 

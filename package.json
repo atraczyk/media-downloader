@@ -35,12 +35,15 @@
       }
     ],
     "win": {
+      "artifactName": "media-downloader-setup-${version}.${ext}",
       "target": "nsis"
     },
     "mac": {
+      "artifactName": "media-downloader-${version}.${ext}",
       "target": "dmg"
     },
     "linux": {
+      "artifactName": "media-downloader-${version}.${ext}",
       "target": "AppImage"
     }
   },

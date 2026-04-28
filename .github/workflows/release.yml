@@ -44,21 +44,14 @@ jobs:
             build_command: npm run build && npx electron-builder --win nsis --publish never
             artifact_paths: |
               dist/*.exe
-              dist/*.blockmap
-              dist/latest*.yml
           - os: macos-latest
             build_command: npm run build && npx electron-builder --mac dmg --publish never
             artifact_paths: |
               dist/*.dmg
-              dist/*.zip
-              dist/*.blockmap
-              dist/latest*.yml
           - os: ubuntu-latest
             build_command: npm run build && npx electron-builder --linux AppImage --publish never
             artifact_paths: |
               dist/*.AppImage
-              dist/*.blockmap
-              dist/latest*.yml
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     env:
@@ -107,6 +100,3 @@ jobs:
             release-artifacts/**/*.exe
             release-artifacts/**/*.dmg
             release-artifacts/**/*.AppImage
-            release-artifacts/**/*.zip
-            release-artifacts/**/*.blockmap
-            release-artifacts/**/latest*.yml

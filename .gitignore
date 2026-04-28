@@ -21,4 +21,4 @@ __pycache__/
 downloads/
 
 # Vendored binaries (fetched by scripts/update-ytdlp.mjs)
-resources/yt-dlp*
+resources/

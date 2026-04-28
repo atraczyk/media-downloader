@@ -5,6 +5,7 @@
 
 # Skills
 - Commit / stage changes: .agents/skills/commit
+- Feature-driven TDD implementation: .agents/skills/feature-tdd
 
 # Topics
 - Making changes: .agents/topics/editing-rules.md

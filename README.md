@@ -55,7 +55,10 @@ npm run dev       # Electron app with hot reload
 
 ```bash
 npm run build     # Compile to out/
-npm run package   # Build distributable installer (dist/)
+npm run package   # Build installer for current OS
+npm run package:win
+npm run package:mac
+npm run package:linux
 ```
 
 Outputs:

@@ -22,8 +22,8 @@ body {
 
 /* ── Frameless title bar ──────────────────────────────── */
 .titlebar {
-  background: #0078d4;
-  color: #fff;
+  background: #f0f0f0;
+  color: #555;
   height: 32px;
   display: flex;
   align-items: center;
@@ -32,6 +32,7 @@ body {
   user-select: none;
   flex-shrink: 0;
   padding-left: 12px;
+  border-bottom: 1px solid #d8d8d8;
 }
 
 .titlebar-title {
@@ -48,7 +49,7 @@ body {
 .wc-btn {
   background: none;
   border: none;
-  color: #fff;
+  color: #666;
   width: 46px;
   height: 32px;
   cursor: pointer;
@@ -59,8 +60,8 @@ body {
   padding: 0;
 }
 
-.wc-btn:hover { background: rgba(255, 255, 255, 0.15); }
-.wc-close:hover { background: #e81123; }
+.wc-btn:hover { background: rgba(0, 0, 0, 0.08); }
+.wc-close:hover { background: #c42b1c; color: #fff; }
 
 .content {
   flex: 1;
@@ -245,19 +246,24 @@ input[type='checkbox'] {
   cursor: pointer;
 }
 
-/* ── URL Validation hint ──────────────────────────────── */
-.hint {
+/* ── URL inline status (sits in card-header next to label) */
+.url-status {
   font-size: 12px;
-  margin-top: 5px;
-  min-height: 18px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 60%;
 }
 
-.hint-ok    { color: #107c10; }
-.hint-err   { color: #a80000; }
-.hint-wait  { color: #666; }
+/* ── Hint (transcript errors etc.) ───────────────────── */
+.hint {
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.hint-ok   { color: #107c10; }
+.hint-err  { color: #a80000; }
+.hint-wait { color: #666; }
 
 /* ── Progress ────────────────────────────────────────── */
 .progress-wrap {

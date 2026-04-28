@@ -168,7 +168,12 @@ export default function App() {
       <div className="content">
         {/* URL */}
         <div className="card">
-          <p className="card-label">URL</p>
+          <div className="card-header">
+            <p className="card-label">URL</p>
+            <span className={`url-status ${urlPending ? 'hint-wait' : urlTitle ? 'hint-ok' : urlError ? 'hint-err' : ''}`}>
+              {urlPending ? 'Checking…' : urlTitle ? `✓ ${urlTitle}` : urlError ? `✗ ${urlError}` : ''}
+            </span>
+          </div>
           <input
             className="input"
             type="url"
@@ -178,9 +183,6 @@ export default function App() {
             onKeyDown={e => e.key === 'Enter' && startDownload()}
             disabled={downloading}
           />
-          {urlPending && <p className="hint hint-wait">Checking…</p>}
-          {urlTitle && !urlPending && <p className="hint hint-ok">✓ {urlTitle}</p>}
-          {urlError && !urlPending && <p className="hint hint-err">✗ {urlError}</p>}
         </div>
 
         {/* Options */}
